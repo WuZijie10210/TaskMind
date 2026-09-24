@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TaskMind · 产品设计案例</title>
+<meta name="description" content="TaskMind：把复杂学习任务组织成主线、支线、可确认的成果和可复用的上下文。">
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:#202239;background:#f7f7fb}*{box-sizing:border-box}body{margin:0}main{max-width:980px;margin:auto;padding:40px 28px 110px}header{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700;color:#5755a7}header small{font-weight:400;color:#777b8d}.hero{padding:95px 0 60px}.eyebrow{font-size:13px;color:#5e57b5;letter-spacing:.1em;font-weight:700}h1{font-size:clamp(38px,6vw,68px);line-height:1.14;max-width:800px;margin:18px 0 28px;letter-spacing:-.03em}h2{font-size:clamp(24px,3vw,34px);margin:0 0 20px}p{line-height:1.9;color:#565b70;font-size:16px}.lead{font-size:20px;max-width:720px}.tag{display:inline-block;padding:10px 16px;border:1px solid #dedcf4;border-radius:99px;color:#5b559e;font-size:13px;margin-top:22px}section{padding:70px 0;border-top:1px solid #e3e4ec}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:30px}.card{background:#fff;border:1px solid #ececf4;border-radius:16px;padding:24px;box-shadow:0 9px 25px rgba(40,40,90,.035)}.card b{display:block;color:#645db1;margin-bottom:15px}.card strong{font-size:19px}.card p{font-size:14px;margin-bottom:0}.decision{display:grid;grid-template-columns:1fr 2fr;gap:25px;padding:24px 0;border-bottom:1px solid #e8e9f0}.decision strong{font-size:18px}.decision p{margin:0}.aside{padding:28px 32px;background:#eeedf9;border-radius:18px}.aside p{margin:0}footer{padding-top:42px;color:#777b8d;font-size:13px}@media(max-width:720px){.hero{padding:65px 0 40px}.flow{grid-template-columns:1fr 1fr}.decision{grid-template-columns:1fr;gap:5px}}@media(max-width:430px){.flow{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<header><span>TaskMind</span><small>个人产品作品 · Case Study</small></header>
+<div class="hero"><div class="eyebrow">从对话走向成果</div><h1>让复杂学习任务有主线，也有探索的空间。</h1><p class="lead">AI 对话能迅速打开思路，但长任务中的信息容易散落，临时探索也会打乱主线。TaskMind 探索如何把任务、支线和成果组织成可以继续推进的工作空间。</p><span class="tag">可交互 Web App · 公开演示版</span></div>
+<section><h2>问题与假设</h2><p>一次课程汇报或行业研究往往需要拆解问题、尝试多个方向、保留中间结论。单一聊天时间线很难同时承载这些动作。我的设计假设是：如果用户能分支探索、审核阶段成果，并在后续对话中明确引用它们，就能更容易延续复杂任务。这个假设尚未经过真实用户数据验证。</p></section>
+<section><h2>核心体验</h2><div class="flow"><div class="card"><b>01</b><strong>创建 Task</strong><p>从一句话开始，明确当前要推进的任务。</p></div><div class="card"><b>02</b><strong>主线与支线</strong><p>保留主目标，同时为问题开辟独立探索空间。</p></div><div class="card"><b>03</b><strong>确认成果</strong><p>AI 提出候选，用户审核后保存为 Artifact。</p></div><div class="card"><b>04</b><strong>显式复用</strong><p>在新消息中用 @成果 或 @任务引入相关内容。</p></div></div></section>
+<section><h2>我做出的产品决策</h2><div class="decision"><strong>冻结支线起点</strong><p>支线创建时保存主线快照。之后主线继续发展，也不会悄悄改变支线的背景。</p></div><div class="decision"><strong>成果由人确认</strong><p>模型擅长整理候选，但哪些结论值得长期保留，需要由使用者判断。</p></div><div class="decision"><strong>冻结引用内容</strong><p>每次引用保存当时传给模型的成果快照，后续修改标题或删除成果不会改写历史语境。</p></div></section>
+<section><h2>下一步验证</h2><div class="aside"><p>邀请目标用户完成一项真实的多轮任务，观察他们是否自发创建支线、能否找到已保存成果、是否理解引用行为。根据观察调整信息架构和默认引导，再处理长对话的上下文预算。</p></div></section>
+<footer>TaskMind · 独立产品构想与实现。将公开 Web App 部署后，可在此页补充体验链接、截图和真实使用反馈。</footer>
+</main></body></html>
