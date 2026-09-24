@@ -1,0 +1,28 @@
+{
+  "name": "taskmind",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TaskMind public portfolio demo",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "vite build",
+    "start": "node app/server.js",
+    "migrate": "node app/migrate.cjs",
+    "test": "node test/context-engine.cjs && node test/demo.cjs && node test/smoke.cjs"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.11.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.1.0",
+    "react-router-dom": "^6.30.6",
+    "remark-gfm": "^4.0.1",
+    "vite": "^5.4.0"
+  }
+}

@@ -1,0 +1,10 @@
+node_modules
+.git
+.env*
+ai.properties
+db.properties
+static
+reports
+*.zip
+PROJECT_STATE.md
+AGENT_HANDOFF.md
