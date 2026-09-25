@@ -1,69 +1,59 @@
 # TaskMind
 
-把复杂学习任务组织成主线、支线、可确认的成果，并在后续对话中显式复用。
+TaskMind 是一个面向复杂学习任务的对话工作台。任务保留主线，临时问题可以进入支线；用户审核并保存阶段成果后，可以在后续对话中显式引用它们。
 
-- **在线体验入口**：https://taskmind-production-7344.up.railway.app/
-- **产品说明**：在线应用的 https://taskmind-production-7344.up.railway.app/about，以及可单独静态发布的 `docs/index.html`。
-- **项目定位**：产品经理个人作品与限额公开体验版；尚未进行真实用户效果验证。
+- [在线体验](https://taskmind-production-7344.up.railway.app/)
+- [产品设计说明](https://taskmind-production-7344.up.railway.app/about)
 
-## 产品体验
+## 核心流程
 
-1. 创建任务，在主线讨论目标。
-2. 为特定问题创建支线。支线继承创建时冻结的主线上下文。
-3. 对阶段对话发起「沉淀」，审核候选成果后确认保存。
-4. 用 `@成果` 或 `@任务` 引用已确认成果；发送时保存引用快照。
+1. 从一句目标描述创建任务，在主线中逐步明确问题和交付物。
+2. 将需要单独探索的问题展开为支线。支线冻结创建时的主线上下文，主线后续消息不会改变支线起点。
+3. 对阶段对话发起成果整理；用户查看来源、修改候选内容，并确认要保存的成果。
+4. 在新的对话中使用 `@成果` 或 `@任务`。任务引用会从该任务的已保存成果中选择相关条目；发送时保存引用的内容快照。
 
-首次打开任务列表时，每个浏览器会得到三个以「示例｜」开头的独立任务：大学学习方式研究（主要功能展示）、学习工具课程汇报（跨任务引用）、新行业分析选题（没有本任务成果）。三个主线均以一轮已完成的引用对话结束；每个任务有一条支线，前两个任务各有一项成果，第三个任务的成果页为空。演示数据不消耗 AI 额度、不包含真实调研结果；可以照常编辑或删除，后续刷新不会重复生成。已生成旧版示例的浏览器不会自动覆盖现有任务，可用无痕窗口查看新版示例。
+公开体验版为每位访客提供三项独立的预置示例：研究计划展示主线、支线、成果与本任务引用；课堂分享展示跨任务引用及可复用的讲述稿；行业分析展示跨任务成果引用与尚无本任务成果的探索状态。示例对话和材料用于说明产品交互，不是真实调查数据、真实文献或实际用户效果。
 
-## 运行架构
+## 技术结构
 
-单个 Node/Express 服务同时提供 React 前端、JSON API 和流式聊天。PostgreSQL 保存任务、消息、支线快照、成果与访客每日额度。服务端通过 OpenAI 兼容的 Chat Completions 接口调用模型，密钥从不发送到浏览器。
+React 前端和 Express API 由一个 Node 服务提供。PostgreSQL 保存任务、消息、支线快照、成果及访客额度。模型调用使用服务端的 OpenAI 兼容 Chat Completions 接口；密钥不进入浏览器。
 
 ## 本地运行
 
-要求 Node 20+ 和 PostgreSQL。复制 `.env.example`，设置真实 `DATABASE_URL`、`AI_API_KEY`、`AI_MODEL` 与随机 `SESSION_SECRET`，并把这些变量加载到运行环境中（Node 20 可使用 `node --env-file=.env`）。
+要求 Node.js 20+ 和 PostgreSQL。复制 `.env.example` 为 `.env` 并配置环境变量：
+
+| 变量 | 说明 |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL 连接地址 |
+| `AI_API_KEY` | AI 服务提供方的密钥 |
+| `AI_BASE_URL` | 与密钥对应的 Chat Completions API 基础地址，通常以 `/v1` 结尾；默认连接 OpenAI 官方地址 |
+| `AI_MODEL` | 服务提供方支持的模型名称，须支持流式输出及 `max_tokens` |
+| `SESSION_SECRET` | 生产环境至少 32 个随机字符，部署后保持稳定 |
+| `PUBLIC_ORIGIN` | 可选；公开站点的来源地址，例如 `https://example.com` |
+
+第三方服务的密钥、地址和模型须属于同一服务提供方。密钥仅保存在服务端环境变量中，不能提交到代码仓库。
 
 ```sh
 npm ci
-npm run migrate
+node --env-file=.env app/migrate.cjs
 npm run build
-npm start
+node --env-file=.env app/server.js
 ```
 
-访问 `http://localhost:3000`。开发前端可运行 `npm run build` 后重启服务；目前没有单独的 Vite 代理开发脚本。
+默认访问 `http://localhost:3000`。`Dockerfile` 在构建时生成前端文件，在启动时应用数据库迁移。
 
-## Railway 上线
+## 部署与验证
 
-1. 将此目录的文件推送到你自己的 GitHub 仓库。不要提交 `.env`、密钥或从旧环境导出的数据库文件。
-2. 在 Railway 新建项目，关联 GitHub 仓库并新增 PostgreSQL。Railway 会使用根目录的 `Dockerfile` 构建单个 Web 服务。
-3. 在 Web 服务的 Variables 中设置：
+项目可部署为一个 Node 服务和一个 PostgreSQL 服务。`Dockerfile` 位于仓库根目录；Web 服务需要上述环境变量，以及由数据库服务提供的 `DATABASE_URL`。健康检查路径为 `/healthz`；`/api/health/modules` 报告数据库连接及 AI 配置状态，AI 状态不会校验密钥或余额。
 
-   | 变量 | 值 |
-   |---|---|
-   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}`（若数据库服务名不同，按实际名称替换） |
-   | `AI_API_KEY` | AI 供应商密钥 |
-   | `AI_MODEL` | 支持 Chat Completions、流式输出与 `max_tokens` 的模型，例如 `gpt-4o-mini` |
-   | `AI_BASE_URL` | 官方 OpenAI 可用 `https://api.openai.com/v1`；兼容服务填其 `/v1` 地址 |
-   | `SESSION_SECRET` | 至少 32 个随机字符；部署后保持不变 |
-   | `PUBLIC_ORIGIN` | 可先省略；域名确定后填 `https://实际域名` |
+`npm test` 检查上下文、引用、访客隔离、示例数据和 HTTP 路由；`npm run build` 检查前端构建。需要在已配置数据库与模型的环境里另行验证真实对话、成果整理与跨任务引用。
 
-4. 先运行一个 Web 实例。Docker 启动时执行数据库迁移，再启动服务；配置健康检查路径 `/healthz`，生成公开域名。
+## 公开体验边界
 
-如果密钥由第三方转接平台发放，必须同时把 `AI_BASE_URL` 改成该平台文档中的 Chat Completions API 基础地址（通常以 `/v1` 结尾），`AI_MODEL` 改成该平台支持的模型名称。不能用第三方密钥搭配默认的 `https://api.openai.com/v1`。变量修改后在 Railway 应用待部署变更，再测试聊天。密钥只填在 Railway 服务变量里，勿上传到 GitHub。
-5. 打开首页并检查：创建任务、流式回复、支线、沉淀确认、`@` 引用；用无痕窗口确认看不到另一个窗口的任务。最后填写上面的体验 URL，并把 `/about` 链接加入简历或作品集。
+- 访客数据通过签名的 HttpOnly Cookie 隔离；浏览器丢失 Cookie 后无法取回原任务。不活跃任务在 7 天后清理。
+- 每位访客每天最多创建 10 个任务、发起 20 次对话和 5 次成果整理；相同来源地址另有总量约束。预置示例本身不消耗模型额度。
+- 目前没有经过真实用户效果验证，预置示例不应作为研究结论引用。
+- 当前没有长对话摘要或严格的 token 预算，长任务可能超过模型的上下文限制。请勿输入敏感资料。
+- 公开运行仍须在 AI 服务提供方设置消费预算；应用内调用次数限制不能替代预算控制。
 
-可在 GitHub 仓库设置 Pages，选择从主分支的 `/docs` 目录发布静态案例页。Web App 确认上线后，为 `docs/index.html` 加入体验链接和真实截图。静态案例页可以独立访问，不能替代需要 API、数据库与 AI 的产品本体。
-
-公开前在 AI 供应商后台设置消费预算。不要只依赖应用内的每日调用次数来控制财务风险。
-
-## 演示版边界
-
-- 游客通过签名的 HttpOnly Cookie 隔离数据；Cookie 丢失后原任务无法找回。游客任务 7 天不活跃后清理。
-- 每个游客每日最多 10 个任务、20 次聊天、5 次沉淀操作；同一来源地址还有额外总量约束。请求额度由数据库原子计数。分布式滥用仍需要供应商预算或网关防护。
-- 同一对话的模型回合采用 PostgreSQL advisory lock；成果确认只有一个请求能成功，并禁止 0 条成果却推进阶段。
-- 聊天历史尚未做 token 预算或摘要；很长的任务可能触达模型的上下文上限。当前定位为短时作品演示。
-- 这不是完整多用户账户产品；访客内容不适合输入敏感资料。
-
-## 验证
-
-`npm test` 检查 Context 组装；`node test/smoke.cjs` 检查健康接口、前端路由和 JSON 404；`npm run build` 检查前端构建。真实 PostgreSQL 与 AI 的端到端验证须在配置连接后进行。
+`docs/index.html` 是可单独发布的静态产品说明，不依赖后端服务。

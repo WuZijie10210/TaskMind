@@ -22,7 +22,8 @@ router.get(
     await seedGuestExamples(req.guestId);
     const { rows } = await db
       .getPool()
-      .query("SELECT id, title, created_at, updated_at FROM tasks WHERE guest_id=$1 ORDER BY updated_at DESC", [req.guestId]);
+      .query("SELECT id, title, created_at, updated_at FROM tasks WHERE guest_id=$1 " +
+        "AND NOT is_archived_example ORDER BY updated_at DESC", [req.guestId]);
     res.json({ tasks: rows.map(toTask) });
   })
 );
