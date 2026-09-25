@@ -232,14 +232,30 @@ textarea { font: inherit; }
 .demo-examples button { border: 1px solid #d8dce6; border-radius: 10px; background: transparent; color: inherit; text-align: left; padding: 11px 13px; cursor: pointer; }
 .demo-examples button:hover { border-color: #857be1; }
 .demo-about { margin-top: 22px; font-size: 13px; }
-.case-study { width: min(780px, 100%); margin: 0 auto; padding: 64px 28px 100px; line-height: 1.8; }
-.case-study h1 { font-size: clamp(28px, 4vw, 44px); line-height: 1.25; margin: 12px 0 22px; }
-.case-study h2 { font-size: 22px; margin: 0 0 14px; }
-.case-study section { border-top: 1px solid #e5e7ed; margin-top: 42px; padding-top: 32px; }
-.case-study p, .case-study li { color: var(--text-2); }
-.case-kicker { font-size: 13px; color: #6861a9; }
-.case-lead { font-size: 18px; }
-.case-cta { display: inline-block; margin-top: 18px; border-radius: 9px; padding: 9px 17px; background: #6057b7; color: #fff; text-decoration: none; }
+.case-page { flex: 1; min-height: 0; overflow-y: auto; }
+.case-study { width: min(970px, 100%); margin: 0 auto; padding: 56px 30px 90px; line-height: 1.8; }
+.case-hero { padding: 18px 0 14px; }
+.case-study h1 { max-width: 760px; font-size: clamp(29px, 4vw, 46px); line-height: 1.27; margin: 14px 0 22px; }
+.case-study h2 { font-size: 23px; line-height: 1.45; margin: 0 0 17px; }
+.case-study h3 { font-size: 17px; line-height: 1.5; margin: 5px 0 10px; }
+.case-study section { border-top: 1px solid #e5e7ed; margin-top: 44px; padding-top: 36px; }
+.case-study p { color: var(--text-2); max-width: 760px; }
+.case-kicker, .case-number { font-size: 13px; font-weight: 650; color: #6057b7; }
+.case-study .case-lead { font-size: 18px; line-height: 1.75; color: #444653; }
+.case-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 18px; margin-top: 24px; }
+.case-cta { display: inline-block; border-radius: 9px; padding: 10px 18px; background: #6057b7; color: #fff; font-weight: 600; text-decoration: none; }
+.case-cta:hover { background: #5147a8; }
+.case-secondary { color: #5147a8; font-weight: 600; }
+.case-study .case-disclosure { font-size: 12px; margin: 19px 0 0; }
+.case-examples { display: grid; gap: 13px; margin: 22px 0 8px; }
+.case-example { background: #fff; border: 1px solid #e5e4f2; border-radius: 14px; padding: 18px 22px; }
+.case-example p { margin: 7px 0; }
+.case-example .case-path { color: #35384c; }
+.case-decisions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
+.case-decisions > div { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+.case-decisions p { margin-bottom: 0; }
+.case-footer { margin-top: 34px; }
+@media (max-width: 760px) { .case-study { padding: 32px 18px 65px; } .case-decisions { grid-template-columns: 1fr; } }
 
 /* ---------- tasks page ---------- */
 .tasks-page { flex: 1; overflow-y: auto; }

@@ -1,6 +1,6 @@
 // app/routes/tasks.js — Task endpoints.
 //
-//   GET  /api/tasks        list all tasks (most recently active first)
+//   GET  /api/tasks        user tasks by recency, followed by curated examples
 //   POST /api/tasks        home-page creation flow: atomically creates
 //                          task + main conversation + first user message
 //   GET  /api/tasks/:id    task detail + its conversations (sidebar data)
@@ -23,7 +23,8 @@ router.get(
     const { rows } = await db
       .getPool()
       .query("SELECT id, title, created_at, updated_at FROM tasks WHERE guest_id=$1 " +
-        "AND NOT is_archived_example ORDER BY updated_at DESC", [req.guestId]);
+        "AND NOT is_archived_example ORDER BY (demo_rank IS NOT NULL), " +
+        "CASE WHEN demo_rank IS NULL THEN updated_at END DESC, demo_rank, updated_at DESC", [req.guestId]);
     res.json({ tasks: rows.map(toTask) });
   })
 );

@@ -2,8 +2,8 @@
 
 TaskMind 是一个面向复杂学习任务的对话工作台。任务保留主线，临时问题可以进入支线；用户审核并保存阶段成果后，可以在后续对话中显式引用它们。
 
-- [在线体验](https://taskmind-production-7344.up.railway.app/)
-- [产品设计说明](https://taskmind-production-7344.up.railway.app/about)
+- [在线体验](https://taskmind-production-050c.up.railway.app/)
+- [产品设计说明](https://taskmind-production-050c.up.railway.app/about)
 
 ## 核心流程
 
