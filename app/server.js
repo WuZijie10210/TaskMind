@@ -115,7 +115,9 @@ app.listen(PORT, HOST, () => {
     .catch(() => {});
   const cleanup = () => db.getPool().query(
     "DELETE FROM tasks WHERE guest_id IS NOT NULL AND updated_at < now() - interval '7 days'"
-  ).then(() => db.getPool().query("DELETE FROM demo_quotas WHERE day < current_date - 2")).catch((e) => console.error("[cleanup]", e.message));
+  ).then(() => db.getPool().query("DELETE FROM demo_quotas WHERE day < current_date - 2"))
+    .then(() => db.getPool().query("DELETE FROM guest_example_seeds WHERE created_at < now() - interval '30 days'"))
+    .catch((e) => console.error("[cleanup]", e.message));
   cleanup();
   setInterval(cleanup, 24 * 60 * 60 * 1000).unref();
 });

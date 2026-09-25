@@ -10,6 +10,7 @@
 const express = require("express");
 const db = require("../services/db");
 const demo = require("../lib/demo");
+const { seedGuestExamples } = require("../lib/guest-examples");
 const { ah, isUuid, toTask, toConversation, toMessage, toArtifact, toDepositionJob, fallbackTitle } = require("../lib/helpers");
 
 const router = express.Router();
@@ -18,6 +19,7 @@ router.use("/:id", demo.protect(demo.ownsTask, (req) => req.params.id));
 router.get(
   "/",
   ah(async (req, res) => {
+    await seedGuestExamples(req.guestId);
     const { rows } = await db
       .getPool()
       .query("SELECT id, title, created_at, updated_at FROM tasks WHERE guest_id=$1 ORDER BY updated_at DESC", [req.guestId]);
