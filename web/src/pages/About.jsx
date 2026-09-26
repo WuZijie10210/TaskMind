@@ -1,13 +1,23 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { api } from "../lib/api";
 
 export default function About() {
+  const [firstExample, setFirstExample] = useState(undefined);
+  useEffect(() => {
+    let active = true;
+    api.listTasks().then(({ tasks }) => {
+      if (active) setFirstExample((tasks || []).find((t) => t.title === "示例｜生成式 AI 与大学教育汇报") || null);
+    }).catch(() => { if (active) setFirstExample(null); });
+    return () => { active = false; };
+  }, []);
   return <div className="case-page"><article className="case-study">
     <header className="case-hero">
       <span className="case-kicker">TaskMind · AI 对话成果复用</span>
       <h1>先推进任务，自然接住成果</h1>
       <p className="case-lead">用 AI 做方案、报告等任务时，有用的判断、框架和方法常与临时探索混在长对话里。任务结束后，人们通常不会专门整理；之后想用时，又难以找到并接上当前任务。</p>
       <p>TaskMind 探索如何让这些阶段产出在任务推进中留下，并在以后继续使用。</p>
-      <div className="case-actions"><Link className="case-cta" to="/tasks">进入产品 →</Link></div>
+      <div className="case-actions"><Link className="case-cta" to="/">开始自己的任务 →</Link></div>
     </header>
 
     <section aria-labelledby="friction"><h2 id="friction">为什么有用的内容常留在聊天记录里</h2>
@@ -31,6 +41,10 @@ export default function About() {
     <section aria-labelledby="next"><h2 id="next">下一步验证</h2>
       <p>优化整理触发时机、成果粒度和确认展示；通过成果保留率与后续调用率，检验这两步是否真的更容易发生。</p>
     </section>
-    <footer className="case-footer"><Link className="case-cta" to="/tasks">开始探索 →</Link></footer>
+    <footer className="case-footer">
+      {firstExample ? <Link className="case-cta" to={`/tasks/${firstExample.id}`}>查看第一个示例 →</Link>
+        : firstExample === null ? <Link className="case-cta" to="/tasks">查看全部任务 →</Link>
+        : <span className="case-cta" aria-busy="true">正在查找示例…</span>}
+    </footer>
   </article></div>;
 }
