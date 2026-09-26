@@ -83,20 +83,23 @@ db.getPool = () => ({ connect: async () => client });
   assert.ok(tasks.every((t) => t.guest_id === firstGuest));
   assert.deepEqual(tasks.map((t) => t.demo_rank), [1, 2]);
   assert.equal(branches.length, 3, "Task A has two branches and Task B has one");
-  assert.equal(artifacts.length, 5, "The source task offers several real choices for task-level matching");
-  assert.equal(jobs.length, 3, "Each source conversation has a confirmed candidate stage");
-  assert.deepEqual(jobs.map((job) => JSON.parse(job[4]).length), [2, 2, 1],
+  assert.equal(artifacts.length, 6, "The source task offers several real choices for task-level matching");
+  assert.equal(jobs.length, 4, "The final report structure is reviewed after the last main turn");
+  assert.deepEqual(jobs.map((job) => JSON.parse(job[4]).length), [2, 2, 1, 1],
     "One review can confirm more than one useful intermediate result");
   assert.deepEqual(refs.map((r) => r[1]), ["artifact", "task"]);
   assert.equal(refs[0][2], artifacts[2].id, "Main explicitly uses the branch method");
   assert.deepEqual(refs[1][4], [artifacts[0].id, artifacts[2].id],
-    "The workshop uses two transferable results out of five confirmed results");
+    "The workshop uses two transferable results out of six confirmed results");
   assert.deepEqual(JSON.parse(refs[1][5]).map((x) => x.title),
     [artifacts[0].title, artifacts[2].title],
     "The task-reference snapshot contains only the two selected results");
   assert.ok(artifacts.filter((a) => !refs[1][4].includes(a.id)).every((a) =>
     !JSON.stringify(JSON.parse(refs[1][5])).includes(a.title)),
-  "The other three confirmed results do not leak into the workshop prompt");
+    "The other four confirmed results do not leak into the workshop prompt");
+  assert.deepEqual(new Set(artifacts.map((a) => a.type)),
+    new Set(["结论", "案例", "框架", "判断", "模板", "方法"]),
+    "The demonstrated labels describe six distinct, supported types of source material");
 
   const mains = tasks.map((task) => conversations.find((c) => c.task_id === task.id && !c.snapshot));
   for (const [i, main] of mains.entries()) {
@@ -114,6 +117,9 @@ db.getPool = () => ({ connect: async () => client });
   assert.equal(artifacts[2].source_conversation_id, branches[0].id);
   assert.equal(artifacts[3].source_conversation_id, branches[0].id);
   assert.equal(artifacts[4].source_conversation_id, branches[1].id);
+  assert.equal(artifacts[5].source_conversation_id, mains[0].id);
+  assert.equal(artifacts[5].source_message_ids.length, 6,
+    "The reusable speaking template comes from the final, fully developed main exchange");
   assert.ok(artifacts.every((a) => a.task_id === tasks[0].id));
   assert.ok(artifacts.every((a) => a.source_snapshot.length === a.source_message_ids.length),
     "Confirmed example results preserve their source messages for later review");
@@ -144,7 +150,7 @@ db.getPool = () => ({ connect: async () => client });
       "",
       "## 如何看链路",
       "",
-      "任务 A 的主线保留两项成果；支线 A 连续探索后保留方法和汇报论证边界；支线 B 虽放弃原方向，仍保留了选题取舍。主线明确引用支线 A 的方法。任务 B 的支线未保存成果；任务 B 最后 @任务 A，从五项已确认成果里只取适合工作坊的两项。",
+      "任务 A 的主线先保留结论和框架；支线 A 探索后保留方法与自拟案例；支线 B 虽放弃原方向，仍保留选题取舍；主线引用方法后形成可复用的汇报模板。任务 B 的支线未保存成果；任务 B 最后 @任务 A，从六项已确认成果里只取适合工作坊的两项。",
       "以下为便于阅读按主线、支线分组；实际交互顺序为任务 A 主线前四条 → 支线 A → 支线 B → 返回任务 A 主线引用 → 任务 B。",
       "",
     ];
@@ -201,7 +207,7 @@ db.getPool = () => ({ connect: async () => client });
   await seedGuestExamples(older);
   assert.deepEqual(archived, ids.slice(0, 2),
     "Only unchanged earlier tasks are hidden; user-edited examples survive");
-  assert.equal(seedVersions.get(older), 6);
+  assert.equal(seedVersions.get(older), 7);
   assert.equal(tasks.length, 6, "An upgrade inserts two new curated examples");
   const copy = crypto.randomUUID();
   seedVersions.set(copy, 3);
@@ -229,7 +235,7 @@ db.getPool = () => ({ connect: async () => client });
   await seedGuestExamples(recentGuest);
   assert.deepEqual(archived.slice(3), recentIds.slice(0, 2),
     "Pristine version 4 examples are hidden; changed conversations survive the refresh");
-  assert.equal(seedVersions.get(recentGuest), 6);
+  assert.equal(seedVersions.get(recentGuest), 7);
   const versionFiveGuest = crypto.randomUUID();
   seedVersions.set(versionFiveGuest, 5);
   const versionFiveId = crypto.randomUUID();
@@ -237,7 +243,17 @@ db.getPool = () => ({ connect: async () => client });
   await seedGuestExamples(versionFiveGuest);
   assert.equal(archived.at(-1), versionFiveId,
     "An unchanged version 5 source example is archived before showing the five-result version");
-  assert.equal(seedVersions.get(versionFiveGuest), 6);
+  assert.equal(seedVersions.get(versionFiveGuest), 7);
+  const versionSixGuest = crypto.randomUUID();
+  seedVersions.set(versionSixGuest, 6);
+  const versionSixId = crypto.randomUUID();
+  legacyRows = [{ ...recentReport, id: versionSixId,
+    artifact_titles: "从零构建与对 AI 草稿反应的判断力差异|大学教育汇报的切入问题与范围|学生使用 AI 时的「先判断—再反馈—后验证」三步框架|即时反馈议题的汇报论证边界|不以「AI 是否替代教师」作为汇报主线",
+    job_count: 3 }];
+  await seedGuestExamples(versionSixGuest);
+  assert.equal(archived.at(-1), versionSixId,
+    "An unchanged version 6 example is archived before showing examples with more type variety");
+  assert.equal(seedVersions.get(versionSixGuest), 7);
   console.log("Guest examples PASS");
 })().catch((error) => { console.error(error); process.exitCode = 1; })
   .finally(() => { db.getPool = oldGetPool; });
