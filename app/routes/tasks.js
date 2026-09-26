@@ -206,7 +206,8 @@ router.get(
     const { rows } = await db
       .getPool()
       .query(
-        "SELECT a.*, c.title AS source_conversation_title, c.type AS source_conversation_type " +
+        "SELECT a.*, a.source_conversation_title AS source_conversation_title_saved, " +
+          "c.title AS source_conversation_title, c.type AS source_conversation_type " +
           "FROM artifacts a LEFT JOIN conversations c ON c.id = a.source_conversation_id " +
           "WHERE a.task_id = $1 ORDER BY a.created_at DESC",
         [t.id]
@@ -214,9 +215,45 @@ router.get(
     res.json({
       artifacts: rows.map((r) => ({
         ...toArtifact(r),
-        sourceConversationTitle: r.source_conversation_title || "已删除对话",
+        sourceConversationTitle: r.source_conversation_title || r.source_conversation_title_saved || "已删除对话",
         sourceConversationType: r.source_conversation_type || null,
+        sourceConversationDeleted: !r.source_conversation_title,
       })),
+    });
+  })
+);
+
+// Frozen provenance is scoped to the visitor's task and survives deletion of
+// the source branch. Older rows are read from surviving messages when needed.
+router.get(
+  "/:taskId/artifacts/:artifactId/source",
+  ah(async (req, res) => {
+    if (!isUuid(req.params.taskId) || !isUuid(req.params.artifactId)) {
+      return res.status(404).json({ error: "artifact not found" });
+    }
+    const pool = db.getPool();
+    const { rows } = await pool.query(
+      "SELECT a.source_snapshot, a.source_message_ids, a.source_conversation_title AS saved_title, " +
+        "c.title AS live_title FROM artifacts a " +
+        "LEFT JOIN conversations c ON c.id=a.source_conversation_id " +
+        "WHERE a.id=$1 AND a.task_id=$2",
+      [req.params.artifactId, req.params.taskId]
+    );
+    const artifact = rows[0];
+    if (!artifact) return res.status(404).json({ error: "artifact not found" });
+    let messages = Array.isArray(artifact.source_snapshot) ? artifact.source_snapshot : [];
+    if (!messages.length && (artifact.source_message_ids || []).length) {
+      messages = (await pool.query(
+        "SELECT m.id, m.role, m.content FROM unnest($1::uuid[]) WITH ORDINALITY AS src(id, position) " +
+          "JOIN messages m ON m.id=src.id JOIN conversations c ON c.id=m.conversation_id " +
+          "WHERE c.task_id=$2 ORDER BY src.position",
+        [artifact.source_message_ids, req.params.taskId]
+      )).rows;
+    }
+    res.json({
+      sourceConversationTitle: artifact.live_title || artifact.saved_title || "原对话已删除",
+      sourceConversationDeleted: !artifact.live_title,
+      messages: messages.map((m) => ({ id: m.id, role: m.role, content: m.content })),
     });
   })
 );

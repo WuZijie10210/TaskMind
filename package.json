@@ -10,7 +10,7 @@
     "build": "vite build",
     "start": "node app/server.js",
     "migrate": "node app/migrate.cjs",
-    "test": "node test/context-engine.cjs && node test/demo.cjs && node test/guest-examples.cjs && node test/smoke.cjs"
+    "test": "node test/context-engine.cjs && node test/demo.cjs && node test/guest-examples.cjs && node test/artifact-source.cjs && node test/smoke.cjs"
   },
   "dependencies": {
     "express": "^4.19.2",

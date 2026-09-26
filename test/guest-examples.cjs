@@ -57,7 +57,8 @@ const client = {
     if (sql.startsWith("INSERT INTO artifacts")) {
       const row = { id: crypto.randomUUID(), task_id: params[0],
         source_conversation_id: params[1], title: params[2], type: params[3],
-        summary: params[4], content: params[5], source_message_ids: params[6], created_at: params[7] };
+        summary: params[4], content: params[5], source_message_ids: params[6],
+        source_snapshot: JSON.parse(params[7]), source_conversation_title: params[8], created_at: params[9] };
       artifacts.push(row); return { rowCount: 1, rows: [row] };
     }
     if (sql.startsWith("INSERT INTO deposition_jobs")) {
@@ -105,6 +106,8 @@ db.getPool = () => ({ connect: async () => client });
   assert.equal(artifacts[0].source_conversation_id, mains[0].id);
   assert.equal(artifacts[1].source_conversation_id, branches[0].id);
   assert.ok(artifacts.every((a) => a.task_id === tasks[0].id));
+  assert.ok(artifacts.every((a) => a.source_snapshot.length === a.source_message_ids.length),
+    "Confirmed example results preserve their source messages for later review");
   assert.ok(!artifacts.some((a) => a.source_conversation_id === branches[1].id),
     "Abandoned teacher-replacement branch has no callable result");
   assert.ok(!artifacts.some((a) => a.task_id === tasks[1].id),
@@ -186,7 +189,7 @@ db.getPool = () => ({ connect: async () => client });
   await seedGuestExamples(older);
   assert.deepEqual(archived, ids.slice(0, 2),
     "Only unchanged earlier tasks are hidden; user-edited examples survive");
-  assert.equal(seedVersions.get(older), 4);
+  assert.equal(seedVersions.get(older), 5);
   assert.equal(tasks.length, 6, "An upgrade inserts two new curated examples");
   const copy = crypto.randomUUID();
   seedVersions.set(copy, 3);
@@ -194,6 +197,27 @@ db.getPool = () => ({ connect: async () => client });
   legacyRows = [{ ...legacyRows[0], id: duplicateId }];
   await seedGuestExamples(copy);
   assert.deepEqual(archived.slice(2), [duplicateId], "Old duplicates are archived individually");
+
+  const recentGuest = crypto.randomUUID();
+  seedVersions.set(recentGuest, 4);
+  const recentIds = Array.from({ length: 3 }, () => crypto.randomUUID());
+  const recentReport = {
+    id: recentIds[0], title: "示例｜生成式 AI 与大学教育汇报", main_count: 6,
+    branch_titles: "支线｜即时反馈会削弱学生判断吗|支线｜AI 会替代大学教师吗", branch_count: 12,
+    artifact_titles: "学生使用 AI 时的「先判断—再反馈—后验证」三步框架|从零构建与对 AI 草稿反应的判断力差异",
+    ref_count: 1, job_count: 2,
+  };
+  legacyRows = [
+    recentReport,
+    { id: recentIds[1], title: "示例｜AI 素养工作坊", main_count: 6,
+      branch_titles: "支线｜小组互评怎么提问", branch_count: 4,
+      artifact_titles: "", ref_count: 1, job_count: 0 },
+    { ...recentReport, id: recentIds[2], main_count: 7 },
+  ];
+  await seedGuestExamples(recentGuest);
+  assert.deepEqual(archived.slice(3), recentIds.slice(0, 2),
+    "Pristine version 4 examples are hidden; changed conversations survive the refresh");
+  assert.equal(seedVersions.get(recentGuest), 5);
   console.log("Guest examples PASS");
 })().catch((error) => { console.error(error); process.exitCode = 1; })
   .finally(() => { db.getPool = oldGetPool; });

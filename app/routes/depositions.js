@@ -164,6 +164,13 @@ router.post(
     if (list.length > 20) return res.status(400).json({ error: "成果数量异常" });
 
     const validIds = new Set(job.source_message_ids || []);
+    const sourceTitle = (await db.getPool().query(
+      "SELECT title FROM conversations WHERE id=$1", [job.conversation_id]
+    )).rows[0]?.title || null;
+    const frozenById = new Map(
+      (Array.isArray(job.source_snapshot?.messages) ? job.source_snapshot.messages : [])
+        .map((m) => [m.messageId, m])
+    );
     const pool = db.getPool();
     const client = await pool.connect();
     const saved = [];
@@ -188,10 +195,14 @@ router.post(
           : [];
         if (ids.length === 0) continue;
         const type = ARTIFACT_TYPES.includes(a.type) ? a.type : "结论";
+        const sourceSnapshot = ids.map((id) => frozenById.get(id)).filter(Boolean).map((m) => ({
+          id: m.messageId, role: m.role, content: m.content,
+        }));
         const row = (
           await client.query(
             "INSERT INTO artifacts (task_id, source_conversation_id, title, type, summary, " +
-              "content, source_message_ids) VALUES ($1, $2, $3, $4, $5, $6, $7) " +
+              "content, source_message_ids, source_snapshot, source_conversation_title) " +
+              "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) " +
               "RETURNING id, task_id, source_conversation_id, title, type, summary, content, " +
               "source_message_ids, created_at, updated_at",
             [
@@ -202,6 +213,8 @@ router.post(
               String(a.summary || "").trim().slice(0, 300),
               content,
               ids,
+              JSON.stringify(sourceSnapshot),
+              sourceTitle,
             ]
           )
         ).rows[0];

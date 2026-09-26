@@ -15,8 +15,12 @@ const TYPE_LABELS = {
 
 function ArtifactCard({ artifact, expanded, onToggle, onRenamed, onDeleted }) {
   const [editing, setEditing] = useState(false);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [sourceMessages, setSourceMessages] = useState(null);
+  const [sourceError, setSourceError] = useState(null);
+  const [sourceLoading, setSourceLoading] = useState(false);
   const sourceLabel = artifact.sourceConversationTitle || "已删除对话";
-  const sourceDeleted = !artifact.sourceConversationTitle || artifact.sourceConversationTitle === "已删除对话";
+  const sourceDeleted = Boolean(artifact.sourceConversationDeleted) || sourceLabel === "已删除对话";
   const createdAt = artifact.createdAt ? new Date(artifact.createdAt).toLocaleDateString("zh-CN") : "";
 
   const handleRename = async (newTitle) => {
@@ -35,13 +39,29 @@ function ArtifactCard({ artifact, expanded, onToggle, onRenamed, onDeleted }) {
     } catch (e) { alert(e.message || "删除失败"); }
   };
 
+  const toggleSources = async () => {
+    if (sourcesOpen) { setSourcesOpen(false); return; }
+    setSourcesOpen(true);
+    if (sourceMessages !== null || sourceLoading) return;
+    setSourceLoading(true);
+    setSourceError(null);
+    try {
+      const result = await api.getArtifactSource(artifact.taskId, artifact.id);
+      setSourceMessages(result.messages || []);
+    } catch (e) {
+      setSourceError(e.message || "来源加载失败");
+    } finally {
+      setSourceLoading(false);
+    }
+  };
+
   return (
     <div className={"artifact-card-v2" + (expanded ? " expanded" : "")} onClick={onToggle}>
       <div className="artifact-card-header">
         <div className="artifact-card-meta-row" onClick={(e) => e.stopPropagation()}>
           <span className={"type-chip t-" + artifact.type}>{TYPE_LABELS[artifact.type] || artifact.type}</span>
           <span className={"artifact-source" + (sourceDeleted ? " deleted" : "")}>
-            {sourceDeleted ? "原支线已删除" : `来自「${sourceLabel}」`}
+            {`来自「${sourceLabel}」${sourceDeleted ? "（原对话已删除）" : ""}`}
           </span>
           <span className="artifact-date">{createdAt}</span>
           <KebabMenu items={[
@@ -70,10 +90,25 @@ function ArtifactCard({ artifact, expanded, onToggle, onRenamed, onDeleted }) {
           <div className="artifact-detail-content">{artifact.content}</div>
           <div className="artifact-detail-footer">
             <span className="artifact-source-info">
-              {sourceDeleted ? "原支线已删除" : `来自「${sourceLabel}」`}
-              {" · "}追溯 {(artifact.sourceMessageIds || []).length} 条消息
+              {`来自「${sourceLabel}」${sourceDeleted ? "（原对话已删除）" : ""}`}
             </span>
+            <button className="artifact-source-link" onClick={toggleSources}>
+              {sourcesOpen ? "收起来源" : `查看来源 · ${(artifact.sourceMessageIds || []).length} 条消息`}
+            </button>
           </div>
+          {sourcesOpen && (
+            <div className="src-list">
+              {sourceLoading && <span>正在加载来源…</span>}
+              {sourceError && <span role="alert">{sourceError}</span>}
+              {sourceMessages && sourceMessages.length === 0 && <span>来源消息已不可用。</span>}
+              {sourceMessages && sourceMessages.map((m) => (
+                <div className="src-msg" key={m.id}>
+                  <span className={"src-role " + m.role}>{m.role === "user" ? "用户" : "助手"}</span>
+                  <span className="src-text">{m.content}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
       <div className="artifact-card-expand-hint">

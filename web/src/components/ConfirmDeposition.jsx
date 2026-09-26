@@ -131,7 +131,18 @@ export default function ConfirmDeposition({ jobId, onClose }) {
                   onChange={(e) => edit(i, { title: e.target.value })}
                   placeholder="成果标题"
                 />
-                {d.summary && <div className="cand-summary">{d.summary}</div>}
+                <label className="cand-summary-field">
+                  <span>成果摘要 · 后续按任务查找时会参考它</span>
+                  <textarea
+                    className="cand-summary"
+                    value={d.summary || ""}
+                    onChange={(e) => edit(i, { summary: e.target.value })}
+                    maxLength={300}
+                    rows={2}
+                    placeholder="用一句话说明这份成果是什么、何时适用"
+                  />
+                  <span className="cand-summary-hint">修改标题或正文后，也请检查摘要是否仍准确。</span>
+                </label>
                 <div className="cand-toggles">
                   <button
                     className="link-btn"

@@ -38,6 +38,7 @@ export const api = {
     j("api/depositions", { method: "POST", body: JSON.stringify({ conversationId }) }),
   getTaskDepositions: (taskId) => j(`api/tasks/${taskId}/depositions`),
   getTaskArtifacts: (taskId) => j(`api/tasks/${taskId}/artifacts`),
+  getArtifactSource: (taskId, artifactId) => j(`api/tasks/${taskId}/artifacts/${artifactId}/source`),
   renameArtifact: (taskId, artifactId, title) =>
     j(`api/tasks/${taskId}/artifacts/${artifactId}`, { method: "PATCH", body: JSON.stringify({ title }) }),
   deleteArtifact: (taskId, artifactId) =>
