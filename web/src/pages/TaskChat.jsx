@@ -593,18 +593,12 @@ export default function TaskChat() {
     }
   }
   const currentArts = refOptions ? (artifactsByTask[taskId] || []) : [];
-  const currentBranches = refOptions?.branches || [];
-  const branchIds = new Set(currentBranches.map((branch) => branch.id));
-  const mainArts = currentArts.filter((artifact) => !branchIds.has(artifact.sourceConversationId));
   const otherTasks = refOptions ? refOptions.tasks.filter((t) => t.id !== taskId) : [];
   const searchArtifactHits = pickerQuery
     ? (refOptions ? refOptions.artifacts : []).filter((a) => matches(a.title, pickerQuery) || matches(a.taskTitle, pickerQuery)).slice(0, 8)
     : [];
   const searchTaskHits = pickerQuery
     ? (refOptions ? refOptions.tasks : []).filter((t) => matches(t.title, pickerQuery)).slice(0, 8)
-    : [];
-  const searchBranchHits = pickerQuery
-    ? currentBranches.filter((b) => matches(b.title, pickerQuery)).slice(0, 5)
     : [];
 
   const toggleTask = (id) =>
@@ -782,7 +776,7 @@ export default function TaskChat() {
               <div className="ref-list">
                 {pickerQuery ? (
                   <>
-                    {searchArtifactHits.length === 0 && searchTaskHits.length === 0 && searchBranchHits.length === 0 && (
+                    {searchArtifactHits.length === 0 && searchTaskHits.length === 0 && (
                       <div className="ref-empty">没有匹配「{pickerQuery}」的任务或成果</div>
                     )}
                     {searchArtifactHits.map((a) => (
@@ -818,22 +812,6 @@ export default function TaskChat() {
                         </div>
                       )
                     )}
-                    {searchBranchHits.map((branch) => (
-                      <div className="ref-branch-group" key={branch.id}>
-                        <div className="ref-section">{branch.title}</div>
-                        {branch.artifactCount > 0
-                          ? currentArts.filter((a) => a.sourceConversationId === branch.id).map((a) => (
-                            <button className="ref-item" key={a.id}
-                              onClick={() => pickRef({ type: "artifact", id: a.id, title: a.title })}>
-                              <span className={"type-chip ref-badge t-" + a.type}>{a.type}</span>
-                              <span className="ref-item-title">{a.title}</span>
-                            </button>
-                          ))
-                          : <div className="ref-empty-block">暂无可调用成果，需要先整理并确认。
-                            <button className="ref-go-deposit" onClick={() => { closePicker(); navigate(`/tasks/${taskId}/c/${branch.id}`); }}>前往支线</button>
-                          </div>}
-                      </div>
-                    ))}
                   </>
                 ) : (
                   <>
@@ -859,9 +837,8 @@ export default function TaskChat() {
                       )}
                     </div>
                     {expandedTasks.has(taskId) &&
-                      (<>
-                        {mainArts.length > 0 && <div className="ref-section">主线成果</div>}
-                        {mainArts.map((a) => (
+                      (currentArts.length > 0 ? (
+                        currentArts.map((a) => (
                           <button
                             className="ref-item indented"
                             key={a.id}
@@ -870,30 +847,15 @@ export default function TaskChat() {
                             <span className={"type-chip ref-badge t-" + a.type}>{a.type}</span>
                             <span className="ref-item-title">{a.title}</span>
                           </button>
-                        ))}
-                        {currentBranches.map((branch) => <div className="ref-branch-group" key={branch.id}>
-                          <div className="ref-section">{branch.title}</div>
-                          {branch.artifactCount > 0
-                            ? currentArts.filter((a) => a.sourceConversationId === branch.id).map((a) => (
-                              <button className="ref-item indented" key={a.id}
-                                onClick={() => pickRef({ type: "artifact", id: a.id, title: a.title })}>
-                                <span className={"type-chip ref-badge t-" + a.type}>{a.type}</span>
-                                <span className="ref-item-title">{a.title}</span>
-                              </button>
-                            ))
-                            : <div className="ref-empty-block">暂无可调用成果，需要先整理并确认。
-                                <button className="ref-go-deposit" onClick={() => { closePicker(); navigate(`/tasks/${taskId}/c/${branch.id}`); }}>前往支线</button>
-                              </div>}
-                        </div>)}
-                        {currentArts.length === 0 && currentBranches.length === 0 && (
+                        ))
+                      ) : (
                         <div className="ref-empty-block">
                           <div className="ref-empty-inline">这个任务还没有可引用的成果</div>
                           <button className="ref-go-deposit" onClick={() => goDeposit({ id: taskId })}>
                             前往任务沉淀
                           </button>
                         </div>
-                        )}
-                      </>)}
+                      ))}
                     {otherTasks.length > 0 && <div className="ref-section">其他任务</div>}
                     {otherTasks.map((t) => (
                       <div key={t.id}>
