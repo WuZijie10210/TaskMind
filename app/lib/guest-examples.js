@@ -2,7 +2,7 @@
 // These are illustrative conversations, not AI output or real user research.
 const db = require("../services/db");
 const { artifactToSnapshot } = require("./reference");
-const SEED_VERSION = 5;
+const SEED_VERSION = 6;
 const timelines = new WeakMap();
 
 function seededAt(client) {
@@ -139,10 +139,11 @@ async function addArtifact(client, source, title, type, summary, content) {
   )).rows[0];
 }
 
-async function addConfirmedStage(client, source, artifact) {
+async function addConfirmedStage(client, source, artifacts) {
   // A seeded result has the same source/cursor contract as an approved
   // deposition. Later turns remain available for a new deposition.
   const ids = source.messages.map((m) => m.id);
+  const selected = Array.isArray(artifacts) ? artifacts : [artifacts];
   const snapshot = {
     conversationId: source.main.id, taskId: source.task.id,
     capturedAt: new Date().toISOString(), cursorMessageId: ids.at(-1),
@@ -156,8 +157,9 @@ async function addConfirmedStage(client, source, artifact) {
       "source_snapshot,candidate_artifacts,cursor_message_id,outcome,created_at,updated_at,completed_at) " +
       "VALUES ($1,$2,'confirmed',$3,$4,$5,$6,'saved',$7,$7,$7)",
     [source.task.id, source.main.id, ids, JSON.stringify(snapshot),
-      JSON.stringify([{ title: artifact.title, type: artifact.type, summary: artifact.summary,
-        content: artifact.content, sourceMessageIds: ids }]), ids.at(-1), seededAt(client)]
+      JSON.stringify(selected.map((artifact) => ({ title: artifact.title, type: artifact.type,
+        summary: artifact.summary, content: artifact.content, sourceMessageIds: ids }))),
+      ids.at(-1), seededAt(client)]
   );
 }
 
@@ -204,7 +206,10 @@ async function seedGuestExamples(guestId) {
     const contrast = await addArtifact(client, report, "从零构建与对 AI 草稿反应的判断力差异", "判断",
       "两种学习任务都需要判断，但判断发生在提出问题与检验现成草稿的不同环节。",
       "从零构建：学生先界定问题、组织理由、选择证据。对 AI 草稿反应：学生先检查既有结构和断言，再决定保留、质疑或修改。区别是判断发生的位置，不是对谁学得更好作效果判断。课堂可让两组面对同一题目分别从零列提纲、审查 AI 提纲，并比较各自做过哪些判断。");
-    await addConfirmedStage(client, report, contrast);
+    const reportScope = await addArtifact(client, report, "大学教育汇报的切入问题与范围", "框架",
+      "8 分钟汇报聚焦 AI 参与学习后学生的判断发生在哪里，以两个学习场景展开，不把学习效果当成已验证结论。",
+      "汇报问题：AI 参与学习时，学生在哪些环节提出和检验自己的判断？用同一道小题的两种处理方式切入：自己先列提纲，或先审查 AI 给出的提纲。先比较两个过程里学生做了哪些判断，再讨论教师能如何设计练习。限定在可观察的任务过程，不从这组示例推断学生学得更好或更差。");
+    await addConfirmedStage(client, report, [contrast, reportScope]);
 
     const feedback = await addBranch(client, report, "支线｜即时反馈会削弱学生判断吗", [
       ["user", "我想单独想想：如果 AI 每一步都马上告诉学生哪里错了，学生会不会渐渐不愿意自己判断？"],
@@ -217,16 +222,23 @@ async function seedGuestExamples(guestId) {
     const method = await addArtifact(client, feedback, "学生使用 AI 时的「先判断—再反馈—后验证」三步框架", "方法",
       "把 AI 反馈放在学生独立判断之后，并要求核验与修正理由。",
       "适用场景：课堂讨论、短文写作或观点练习。\n1. 先判断：学生先写观点与理由，保留原稿。\n2. 再反馈：请 AI 提供反例或指出漏洞，学生标出同意和质疑之处。\n3. 后验证：回到课程材料核对关键事实，记录保留或修改了什么及原因。\n可观察的产出：初稿、反馈标记、修订理由；不能据此推断学习效果已被证实。");
-    await addConfirmedStage(client, feedback, method);
+    const feedbackArgument = await addArtifact(client, feedback, "即时反馈议题的汇报论证边界", "判断",
+      "讨论 AI 即时反馈时，比较反馈出现的时机与学生作出判断的机会，不直接断言即时反馈必然削弱判断力。",
+      "汇报中可对照两种顺序：学生尚未提出理由就看到 AI 纠正；学生先留下观点和理由，随后用 AI 的反例检验它。前一种顺序可能挤掉独立形成判断的机会，后一种顺序则留下了可以比对的初稿与修订理由。这个对照用于提出问题与设计课堂讨论，不当作即时反馈效果的实证结论。");
+    await addConfirmedStage(client, feedback, [method, feedbackArgument]);
 
-    await addBranch(client, report, "支线｜AI 会替代大学教师吗", [
+    const teacher = await addBranch(client, report, "支线｜AI 会替代大学教师吗", [
       ["user", "还有个方向：AI 会不会替代大学教师？大家可能更想听这个。"],
       ["assistant", "它容易吸引注意，但「替代或不替代」太宽，也不容易在 8 分钟内讲清条件。你可以问得具体些：哪些环节适合 AI 给反馈，哪些环节仍需要教师设计任务、判断学生是否真正理解？"],
       ["user", "这样讲又像是另起一个汇报。我现在更想讲学生怎样保持判断力。"],
       ["assistant", "那就把教师角色留作结尾的一句延伸：教师可以设计先独立判断、再借助反馈、最后核验的任务。主体仍围绕学生在不同环节做了什么判断。这个方向可以先放下，之后有时间再单独讨论。"],
-      ["user", "对，先不把「替代教师」放到标题里。我要把时间留给那个具体的课堂练习。"],
-      ["assistant", "可以。标题可以暂定为「AI 参与学习后，学生的判断发生在哪里？」结尾再用教师如何设计练习收住，不需要先回答一个很大的替代问题。"],
+      ["user", "对，先不把「替代教师」放到标题里。之后改稿时我可能又觉得它更吸引人，你帮我把不选它的理由说清楚，我要把时间留给那个具体的课堂练习。"],
+      ["assistant", "可以记下这个取舍：8 分钟内很难说清「替代教师」依赖的教学环节和条件，还容易把汇报带到二选一的争论里。你真正要展示的是学生在什么环节作判断，以及课堂练习怎么保留这些环节。标题暂定为「AI 参与学习后，学生的判断发生在哪里？」教师如何设计练习放到结尾。"],
     ]);
+    const teacherChoice = await addArtifact(client, teacher, "不以「AI 是否替代教师」作为汇报主线", "判断",
+      "保留将教师角色放在汇报结尾的取舍：8 分钟主线聚焦学生判断过程，而非二元替代争论。",
+      "当时考虑过用「AI 是否替代大学教师」吸引听众，但这个提问太宽，涉及不同教学环节的条件，8 分钟内容易沦为替代或不替代的争论。最终选择「AI 参与学习后，学生的判断发生在哪里？」作为主线，把时间给两种学习过程的对比与现场练习；教师如何设计任务仅在结尾回应。今后修改这份汇报时可用这个理由检查是否跑题。");
+    await addConfirmedStage(client, teacher, teacherChoice);
 
     const reportRef = await addTurn(client, report, "user",
       "我决定不以「AI 是否替代教师」作主线。请用【@" + method.title + "】重新排 8 分钟的汇报，重点放在学生判断发生在哪些环节，最后给一个同学能现场尝试的小练习。");

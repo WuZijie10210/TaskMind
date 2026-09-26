@@ -83,14 +83,20 @@ db.getPool = () => ({ connect: async () => client });
   assert.ok(tasks.every((t) => t.guest_id === firstGuest));
   assert.deepEqual(tasks.map((t) => t.demo_rank), [1, 2]);
   assert.equal(branches.length, 3, "Task A has two branches and Task B has one");
-  assert.equal(artifacts.length, 2);
-  assert.equal(jobs.length, 2, "Each confirmed result has a candidate record");
+  assert.equal(artifacts.length, 5, "The source task offers several real choices for task-level matching");
+  assert.equal(jobs.length, 3, "Each source conversation has a confirmed candidate stage");
+  assert.deepEqual(jobs.map((job) => JSON.parse(job[4]).length), [2, 2, 1],
+    "One review can confirm more than one useful intermediate result");
   assert.deepEqual(refs.map((r) => r[1]), ["artifact", "task"]);
-  assert.equal(refs[0][2], artifacts[1].id, "Main explicitly uses the branch method");
-  assert.deepEqual(refs[1][4], [artifacts[0].id, artifacts[1].id],
-    "Cross-task reference only uses two confirmed artifacts");
+  assert.equal(refs[0][2], artifacts[2].id, "Main explicitly uses the branch method");
+  assert.deepEqual(refs[1][4], [artifacts[0].id, artifacts[2].id],
+    "The workshop uses two transferable results out of five confirmed results");
   assert.deepEqual(JSON.parse(refs[1][5]).map((x) => x.title),
-    artifacts.map((a) => a.title));
+    [artifacts[0].title, artifacts[2].title],
+    "The task-reference snapshot contains only the two selected results");
+  assert.ok(artifacts.filter((a) => !refs[1][4].includes(a.id)).every((a) =>
+    !JSON.stringify(JSON.parse(refs[1][5])).includes(a.title)),
+  "The other three confirmed results do not leak into the workshop prompt");
 
   const mains = tasks.map((task) => conversations.find((c) => c.task_id === task.id && !c.snapshot));
   for (const [i, main] of mains.entries()) {
@@ -104,12 +110,16 @@ db.getPool = () => ({ connect: async () => client });
   assert.ok(branches.every((b) => JSON.parse(b.snapshot).messages.length === 4),
     "Branches freeze the main context before its final citation");
   assert.equal(artifacts[0].source_conversation_id, mains[0].id);
-  assert.equal(artifacts[1].source_conversation_id, branches[0].id);
+  assert.equal(artifacts[1].source_conversation_id, mains[0].id);
+  assert.equal(artifacts[2].source_conversation_id, branches[0].id);
+  assert.equal(artifacts[3].source_conversation_id, branches[0].id);
+  assert.equal(artifacts[4].source_conversation_id, branches[1].id);
   assert.ok(artifacts.every((a) => a.task_id === tasks[0].id));
   assert.ok(artifacts.every((a) => a.source_snapshot.length === a.source_message_ids.length),
     "Confirmed example results preserve their source messages for later review");
-  assert.ok(!artifacts.some((a) => a.source_conversation_id === branches[1].id),
-    "Abandoned teacher-replacement branch has no callable result");
+  assert.equal(artifacts[4].type, "判断", "A discarded direction can leave a reusable decision");
+  assert.ok(!artifacts.some((a) => a.source_conversation_id === branches[2].id),
+    "The workshop's unfinished branch has no callable result");
   assert.ok(!artifacts.some((a) => a.task_id === tasks[1].id),
     "The workshop uses prior results without forcing a new result");
   assert.ok(jobs.every((job) => JSON.parse(job[3]).messages.length === 4 ||
@@ -134,7 +144,7 @@ db.getPool = () => ({ connect: async () => client });
       "",
       "## 如何看链路",
       "",
-      "任务 A 的主线先形成一份判断成果；支线 A 连续探索并确认三步方法；支线 B 探索后没有确认成果；主线明确引用支线 A 的方法。任务 B 最后 @任务 A，只取两份确认成果。",
+      "任务 A 的主线保留两项成果；支线 A 连续探索后保留方法和汇报论证边界；支线 B 虽放弃原方向，仍保留了选题取舍。主线明确引用支线 A 的方法。任务 B 的支线未保存成果；任务 B 最后 @任务 A，从五项已确认成果里只取适合工作坊的两项。",
       "以下为便于阅读按主线、支线分组；实际交互顺序为任务 A 主线前四条 → 支线 A → 支线 B → 返回任务 A 主线引用 → 任务 B。",
       "",
     ];
@@ -152,11 +162,13 @@ db.getPool = () => ({ connect: async () => client });
             lines.push("> 明确 @"+(ref[1] === "task" ? "任务" : "成果")+"：「"+ref[3]+"」；本轮引用的已确认成果："+JSON.parse(ref[5]).map((a)=>a.title).join("、")+"。", "");
           }
           for (const job of jobs.filter((j) => j[1] === conv.id && j[2].at(-1) === msg.id)) {
-            const candidate = JSON.parse(job[4])[0];
-            lines.push("**整理记录（预置交互状态，不是聊天消息）**：用户在本阶段主动发起整理 → AI 提炼候选「"+candidate.title+"」（"+candidate.type+"） → 用户查看来源、确认保存。来源消息 "+job[2].length+" 条。", "");
+            const candidates = JSON.parse(job[4]);
+            lines.push("**整理记录（预置交互状态，不是聊天消息）**：用户在本阶段主动发起整理 → AI 提炼候选"+
+              candidates.map((candidate) => "「"+candidate.title+"」（"+candidate.type+"）").join("、")+
+              " → 用户查看来源、确认保存。来源消息 "+job[2].length+" 条。", "");
           }
         }
-        if (conv.id === branches[1].id) lines.push("**状态**：这条支线没有确认成果；打开 @ 引用列表时会显示「暂无可调用成果」。", "");
+        if (conv.id === branches[2].id) lines.push("**状态**：这条支线没有确认成果；打开 @ 引用列表时会显示「暂无可调用成果」。", "");
       }
       lines.push("### 可调用的已确认成果", "");
       const saved = artifacts.filter((a) => a.task_id === task.id);
@@ -189,7 +201,7 @@ db.getPool = () => ({ connect: async () => client });
   await seedGuestExamples(older);
   assert.deepEqual(archived, ids.slice(0, 2),
     "Only unchanged earlier tasks are hidden; user-edited examples survive");
-  assert.equal(seedVersions.get(older), 5);
+  assert.equal(seedVersions.get(older), 6);
   assert.equal(tasks.length, 6, "An upgrade inserts two new curated examples");
   const copy = crypto.randomUUID();
   seedVersions.set(copy, 3);
@@ -217,7 +229,15 @@ db.getPool = () => ({ connect: async () => client });
   await seedGuestExamples(recentGuest);
   assert.deepEqual(archived.slice(3), recentIds.slice(0, 2),
     "Pristine version 4 examples are hidden; changed conversations survive the refresh");
-  assert.equal(seedVersions.get(recentGuest), 5);
+  assert.equal(seedVersions.get(recentGuest), 6);
+  const versionFiveGuest = crypto.randomUUID();
+  seedVersions.set(versionFiveGuest, 5);
+  const versionFiveId = crypto.randomUUID();
+  legacyRows = [{ ...recentReport, id: versionFiveId }];
+  await seedGuestExamples(versionFiveGuest);
+  assert.equal(archived.at(-1), versionFiveId,
+    "An unchanged version 5 source example is archived before showing the five-result version");
+  assert.equal(seedVersions.get(versionFiveGuest), 6);
   console.log("Guest examples PASS");
 })().catch((error) => { console.error(error); process.exitCode = 1; })
   .finally(() => { db.getPool = oldGetPool; });
