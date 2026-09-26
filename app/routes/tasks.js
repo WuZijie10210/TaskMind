@@ -341,10 +341,20 @@ router.get(
     if (!t) return res.status(404).json({ error: "task not found" });
     const arts = (
       await db.getPool().query(
-        "SELECT a.id, a.title, a.type, a.summary, a.task_id, tk.title AS task_title " +
+        "SELECT a.id, a.title, a.type, a.summary, a.task_id, a.source_conversation_id, tk.title AS task_title " +
           "FROM artifacts a JOIN tasks tk ON tk.id = a.task_id " +
-          "WHERE tk.guest_id=$2 ORDER BY (a.task_id = $1) DESC, a.created_at DESC",
+          "WHERE tk.guest_id=$2 AND NOT tk.is_archived_example " +
+          "ORDER BY (a.task_id = $1) DESC, a.created_at DESC",
         [t.id, req.guestId]
+      )
+    ).rows;
+    const branches = (
+      await db.getPool().query(
+        "SELECT c.id, c.title, count(a.id)::int AS artifact_count " +
+          "FROM conversations c LEFT JOIN artifacts a ON a.source_conversation_id=c.id " +
+          "WHERE c.task_id=$1 AND c.type='branch' " +
+          "GROUP BY c.id, c.title, c.created_at ORDER BY c.created_at ASC",
+        [t.id]
       )
     ).rows;
     // LEFT JOIN: every task shows up even with 0 confirmed artifacts — the
@@ -353,7 +363,8 @@ router.get(
     const tasks = (
       await db.getPool().query(
         "SELECT tk.id, tk.title, count(a.id)::int AS artifact_count " +
-          "FROM tasks tk LEFT JOIN artifacts a ON a.task_id = tk.id WHERE tk.guest_id=$2 " +
+          "FROM tasks tk LEFT JOIN artifacts a ON a.task_id = tk.id " +
+          "WHERE tk.guest_id=$2 AND NOT tk.is_archived_example " +
           "GROUP BY tk.id, tk.title, tk.updated_at " +
           "ORDER BY (tk.id = $1) DESC, tk.updated_at DESC",
         [t.id, req.guestId]
@@ -366,9 +377,11 @@ router.get(
         type: a.type,
         summary: a.summary || "",
         taskId: a.task_id,
+        sourceConversationId: a.source_conversation_id,
         taskTitle: a.task_title,
       })),
       tasks: tasks.map((x) => ({ id: x.id, title: x.title, artifactCount: x.artifact_count })),
+      branches: branches.map((b) => ({ id: b.id, title: b.title, artifactCount: b.artifact_count })),
     });
   })
 );

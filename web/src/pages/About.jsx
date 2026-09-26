@@ -1,52 +1,50 @@
 import { Link } from "react-router-dom";
 
-const examples = [
-  { number: "01 · 建议先看", title: "从宽泛选题到研究计划",
-    path: "主线确定研究问题 → 支线连续核查存疑资料 → 分别保存核查卡与判断 → 回到主线引用核查卡制定两天计划",
-    payoff: "看主线如何保持方向，支线如何深入一个问题，以及成果如何再次进入对话。" },
-  { number: "02 · 跨任务复用", title: "把研究计划做成课堂分享",
-    path: "主线排出六页内容 → 支线打磨没有调查数据时的开场 → 主线引用第一个任务的核查卡 → 得到一份讲述稿",
-    payoff: "看另一个任务如何借用已核实的方法，同时保留尚未填入的证据空位。" },
-  { number: "03 · 探索中的任务", title: "教育科技行业分析立项",
-    path: "主线收窄分析范围 → 支线辨别官网宣传与有效证据 → 主线引用第二个任务的讲述结构 → 留下一份待核查草稿",
-    payoff: "看引用现有成果后仍可继续探索；这个任务尚未确认自己的成果。" },
+const steps = [
+  { number: "01", title: "围绕任务推进", detail: "「生成式 AI 与大学教育汇报」从一个宽泛题目开始，主线把重点收窄到学生判断力。左侧同时保留主线、两条支线和已确认成果。", see: "打开任务 A，看左侧结构与主线开头。" },
+  { number: "02", title: "在出现问题的地方分出支线", detail: "「即时反馈会削弱学生判断吗」从主线当时的节点展开，沿着反馈时机连聊三轮。另一条「AI 会替代大学教师吗」探了一段后被放下。", see: "打开两条支线，看顶部来源与不同结果。" },
+  { number: "03", title: "没有成果时，过程不能直接调用", detail: "尚未确认成果的「教师替代」支线不会把聊天内容带回主线。引用选择框会标明该支线暂无可调用成果；支线对话仍留在原处。", see: "在任务 A 的输入框输入 @，展开尚无成果的支线。" },
+  { number: "04", title: "整理候选，由用户决定留什么", detail: "「即时反馈」支线讨论出三步做法。AI 提炼方法候选；用户查看内容与来源，确认后才得到可调用的成果。已确认的示例可打开整理记录回看候选与来源。", see: "看支线 A 的成果及左侧整理记录；也可以在自己的任务中实际发起整理。" },
+  { number: "05", title: "让确认的成果回到主线", detail: "主线明确 @「先判断—再反馈—后验证」三步框架，基于它重新安排 8 分钟汇报。只带入这份成果，不读取支线全部聊天。", see: "看任务 A 主线最后一轮的引用与回复。" },
+  { number: "06", title: "只记得任务，也能找回成果", detail: "「AI 素养工作坊」直接 @ 历史汇报任务。系统从已确认成果中匹配判断力差异和三步方法，再帮助设计学生任务卡。", see: "看任务 B 主线最后一轮与引用标记。" },
 ];
 
 export default function About() {
   return <div className="case-page"><article className="case-study">
     <header className="case-hero">
       <span className="case-kicker">TaskMind · 产品设计记录</span>
-      <h1>把长对话里的探索，变成下次还能接着用的成果</h1>
-      <p className="case-lead">一个研究题目往往要经历收窄范围、查找资料、处理例外，再写成可交付的内容。TaskMind 把这些步骤放在同一个任务里：主线负责推进目标，支线负责单独追问，确认过的内容可以被后续对话引用。</p>
-      <div className="case-actions"><Link className="case-cta" to="/tasks">按顺序查看三个示例 →</Link><Link className="case-secondary" to="/">自己创建任务</Link></div>
-      <p className="case-disclosure">以下示例为演示交互而编写，不是真实访谈、论文核查结果或用户效果数据。</p>
+      <h1>先推进任务，自然接住成果</h1>
+      <p className="case-lead">做报告、方案和研究整理时，AI 对话里会产生有价值的中间产出，却常常埋在长记录中。TaskMind 试着解决：人不刻意维护知识库，聊出的阶段成果如何仍能被找回、调用，并继续服务下一个任务。</p>
+      <div className="case-actions"><Link className="case-cta" to="/tasks">从示例任务开始 →</Link><Link className="case-secondary" to="/">自己开始一个任务</Link></div>
+      <p className="case-disclosure">示例对话是为演示产品行为而编写，未声称真实用户研究或教学效果。</p>
     </header>
 
-    <section aria-labelledby="problem"><h2 id="problem">为什么要这样设计</h2>
-      <p>复杂任务中的一段临时讨论可能很有价值，但也可能让原本要完成的目标失焦。即使对话给出了有用的做法，过几天仍需要翻找聊天记录、重新解释背景。产品假设是：给探索留出独立空间，并让用户决定哪些内容值得保存，能帮助人继续做事。这个假设尚未经过真实用户研究验证。</p>
+    <section aria-labelledby="principle"><h2 id="principle">不是保存聊了什么，而是保存聊出了什么</h2>
+      <p>用户围绕一个任务持续推进；遇到值得深究的问题，可以从当时的主线节点开支线。支线可以形成成果，也可以探索后放下。对话之间不共享过程，只共享用户明确调用的成果；可调用的前提是这份成果经过用户确认。</p>
+      <p>整理不是自动总结全部历史：用户主动发起一次阶段整理，AI 提炼候选，用户看来源、决定是否保存。未经确认的内容留在对话中，不会悄悄进入别的对话。</p>
     </section>
 
-    <section aria-labelledby="examples"><h2 id="examples">从这三个任务看完整流程</h2>
-      <p>三个示例各有主线和多轮支线。它们按下面的顺序展示；每个任务的主线最后一轮都有显式引用。</p>
-      <div className="case-examples">{examples.map((item) => <div className="case-example" key={item.number}>
-        <span className="case-number">{item.number}</span><h3>{item.title}</h3>
-        <p className="case-path">{item.path}</p><p>{item.payoff}</p>
+    <section aria-labelledby="walkthrough"><h2 id="walkthrough">用两个任务看完整链路</h2>
+      <p>任务 A「生成式 AI 与大学教育汇报」展示主线、两条支线、确认成果及回到主线调用；任务 B「AI 素养工作坊」展示跨任务复用。按以下顺序看，重点是成果如何产生和流转。</p>
+      <div className="case-examples">{steps.map((s) => <div className="case-example" key={s.number}>
+        <span className="case-number">{s.number} / 06</span><h3>{s.title}</h3>
+        <p className="case-path">{s.detail}</p><p className="case-see">{s.see}</p>
       </div>)}</div>
-      <Link className="case-cta" to="/tasks">打开任务列表 →</Link>
+      <Link className="case-cta" to="/tasks">打开两个示例任务 →</Link>
     </section>
 
-    <section aria-labelledby="decisions"><h2 id="decisions">三个交互决策</h2>
+    <section aria-labelledby="reuse"><h2 id="reuse">两种引用，回应两种记忆方式</h2>
       <div className="case-decisions">
-        <div><h3>支线有固定的起点</h3><p>从主线的某一刻分出支线时，保存当时的上下文。之后主线继续推进，不会悄悄改写支线的讨论背景；支线里的内容也不会自动进入主线。</p></div>
-        <div><h3>成果由人确认</h3><p>AI 可以根据对话整理候选成果，用户检查、修改并决定是否保存。一次讨论可以暂时只留下对话，不必强行生成成果。</p></div>
-        <div><h3>引用有可追溯的内容</h3><p>发送带有 @成果 或 @任务 的消息时，系统保存实际引用内容的快照。后续改名不会让历史消息看起来引用了另一份材料。</p></div>
+        <div><h3>@成果：我知道我要什么</h3><p>明确选中一份已确认成果。任务 A 的主线使用支线的三步框架；发送时保存引用内容快照，历史对话可追溯。</p></div>
+        <div><h3>@任务：我知道去哪里找</h3><p>只记得成果出自哪项任务时，选择整个任务。系统只从这个任务已确认的成果中匹配相关内容，不读取任务原始聊天。</p></div>
+        <div><h3>由人确认，才进入下次对话</h3><p>AI 负责提炼候选，用户负责判断此刻要不要留、要留什么。没有成果的支线仍可以继续聊，也可以放下。</p></div>
       </div>
     </section>
 
-    <section aria-labelledby="scope"><h2 id="scope">现在能体验什么</h2>
-      <p>可以创建任务、继续主线或支线、审核阶段成果，并在新对话中引用保存过的内容。公开体验版按浏览器隔离访客数据，设置每日使用额度；不活跃数据会定期清理。三个示例是可编辑的演示数据，里面的占位文献和待查资料不能当作已经核实的事实。</p>
-      <p>下一步需要通过真实使用验证：人们是否会主动开支线、是否愿意审核成果，以及跨任务引用能否真正减少重复整理。</p>
+    <section aria-labelledby="limits"><h2 id="limits">目前的边界与待验证问题</h2>
+      <p>这是可交互的产品原型。示例展示的是设计路径，不是已经验证的教学方法；有关学生判断力的描述用于提出问题和设计练习，不应当作效果结论。公开体验版按浏览器隔离访客数据、限制每天的模型调用，并定期清理不活跃任务。</p>
+      <p>下一步需要观察：用户会不会在推进任务时主动整理，哪些候选值得保留，以及用 @任务 找成果是否真的比重翻聊天记录轻松。现在没有真实用户效果数据。</p>
     </section>
-    <footer className="case-footer"><Link className="case-cta" to="/tasks">先看第一个示例 →</Link></footer>
+    <footer className="case-footer"><Link className="case-cta" to="/tasks">先看任务 A →</Link></footer>
   </article></div>;
 }

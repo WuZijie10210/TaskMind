@@ -240,6 +240,7 @@ export default function Sidebar() {
     return c ? c.title : "对话";
   };
   const activeJobs = jobs.filter((j) => ["processing", "ready", "failed"].includes(j.status));
+  const confirmedJobs = jobs.filter((j) => j.status === "confirmed" && j.candidateCount > 0).slice(0, 3);
   const readyConvIds = new Set(
     jobs.filter((j) => j.status === "ready" && j.candidateCount > 0).map((j) => j.conversationId)
   );
@@ -346,6 +347,17 @@ export default function Sidebar() {
                 </button>
               );
             })}
+          </div>
+        )}
+        {confirmedJobs.length > 0 && (
+          <div className="side-section">
+            <div className="side-section-title">整理记录</div>
+            {confirmedJobs.map((j) => (
+              <button className="dep-item ready" key={j.id} onClick={() => setConfirmJobId(j.id)}>
+                查看已确认的候选
+                <span className="dep-from">来自「{convTitle(j.conversationId)}」</span>
+              </button>
+            ))}
           </div>
         )}
 

@@ -73,122 +73,127 @@ const client = {
 db.getPool = () => ({ connect: async () => client });
 
 (async () => {
-  const a = crypto.randomUUID();
-  const b = crypto.randomUUID();
-  await seedGuestExamples(a);
-  await seedGuestExamples(a);
-  assert.equal(tasks.length, 3, "Repeat visit must not recreate examples");
+  const firstGuest = crypto.randomUUID();
+  const secondGuest = crypto.randomUUID();
+  await seedGuestExamples(firstGuest);
+  await seedGuestExamples(firstGuest);
+  assert.equal(tasks.length, 2, "Repeat visits do not add examples");
   assert.equal(committed, 2);
-  assert.ok(tasks.every((task) => task.guest_id === a));
-  assert.deepEqual(tasks.map((task) => task.demo_rank), [1, 2, 3]);
-  assert.equal(artifacts.length, 3);
-  assert.equal(branches.length, 3);
-  assert.equal(jobs.length, 3);
-  assert.ok(branches.every((branch) => JSON.parse(branch.snapshot).messages.length === 4));
-  assert.ok(branches.every((branch) => messages.filter((m) => m.conversation_id === branch.id).length === 6));
-  assert.deepEqual(refs.map((ref) => ref[1]), ["artifact", "task", "artifact"]);
-  assert.deepEqual(refs.map((ref) => JSON.parse(ref[5])[0].id),
-    [artifacts[0].id, artifacts[0].id, artifacts[2].id]);
-  assert.deepEqual(refs.map((ref) => ref[2]), [artifacts[0].id, tasks[0].id, artifacts[2].id]);
-  assert.ok(refs.every((ref) => messages.some((msg) => msg.id === ref[0])));
-  for (const [index, task] of tasks.entries()) {
-    const main = conversations.find((c) => c.task_id === task.id && !c.snapshot);
-    const mainMessages = messages.filter((m) => m.conversation_id === main.id);
-    assert.equal(mainMessages.length, 6);
-    assert.equal(mainMessages.at(-2).role, "user");
-    assert.equal(mainMessages.at(-1).role, "assistant");
-    assert.equal(refs[index][0], mainMessages.at(-2).id);
-    assert.match(mainMessages.at(-2).content, /【@.+】/);
+  assert.ok(tasks.every((t) => t.guest_id === firstGuest));
+  assert.deepEqual(tasks.map((t) => t.demo_rank), [1, 2]);
+  assert.equal(branches.length, 3, "Task A has two branches and Task B has one");
+  assert.equal(artifacts.length, 2);
+  assert.equal(jobs.length, 2, "Each confirmed result has a candidate record");
+  assert.deepEqual(refs.map((r) => r[1]), ["artifact", "task"]);
+  assert.equal(refs[0][2], artifacts[1].id, "Main explicitly uses the branch method");
+  assert.deepEqual(refs[1][4], [artifacts[0].id, artifacts[1].id],
+    "Cross-task reference only uses two confirmed artifacts");
+  assert.deepEqual(JSON.parse(refs[1][5]).map((x) => x.title),
+    artifacts.map((a) => a.title));
+
+  const mains = tasks.map((task) => conversations.find((c) => c.task_id === task.id && !c.snapshot));
+  for (const [i, main] of mains.entries()) {
+    const turns = messages.filter((m) => m.conversation_id === main.id);
+    assert.equal(turns.length, 6);
+    assert.equal(turns.at(-2).id, refs[i][0], "Final main turn has explicit reference");
+    assert.equal(turns.at(-1).role, "assistant");
   }
-  assert.equal(artifacts.filter((artifact) => artifact.task_id === tasks[2].id).length, 0);
-  assert.equal(artifacts[1].source_message_ids.length, 6, "Branch result cites only its own turns");
-  assert.equal(artifacts[2].source_message_ids.length, 6, "Cross-task answer precedes its saved result");
-  assert.ok(messages.every((message, index) => index === 0 ||
-    message.created_at > messages[index - 1].created_at), "Messages sort in conversation order");
-  assert.ok(tasks.every((task, index) => index === 0 ||
-    task.created_at > tasks[index - 1].created_at), "Tasks sort in intended order");
-  assert.equal(jobs[0][5], artifacts[0].source_message_ids.at(-1));
-  assert.equal(jobs[2][5], artifacts[2].source_message_ids.at(-1));
-  const cited = messages.find((message) => message.id === refs[1][0]);
+  assert.deepEqual(branches.map((b) => messages.filter((m) => m.conversation_id === b.id).length),
+    [6, 6, 4]);
+  assert.ok(branches.every((b) => JSON.parse(b.snapshot).messages.length === 4),
+    "Branches freeze the main context before its final citation");
+  assert.equal(artifacts[0].source_conversation_id, mains[0].id);
+  assert.equal(artifacts[1].source_conversation_id, branches[0].id);
+  assert.ok(artifacts.every((a) => a.task_id === tasks[0].id));
+  assert.ok(!artifacts.some((a) => a.source_conversation_id === branches[1].id),
+    "Abandoned teacher-replacement branch has no callable result");
+  assert.ok(!artifacts.some((a) => a.task_id === tasks[1].id),
+    "The workshop uses prior results without forcing a new result");
+  assert.ok(jobs.every((job) => JSON.parse(job[3]).messages.length === 4 ||
+    JSON.parse(job[3]).messages.length === 6));
+  assert.ok(messages.every((m, i) => i === 0 || m.created_at > messages[i - 1].created_at));
+  assert.ok(messages.every((m) => !/本轮不保存成果|用户确认保存|系统匹配了|这个任务仍在探索阶段/.test(m.content)),
+    "The dialogue cannot narrate product internals");
+  const cited = messages.find((m) => m.id === refs[1][0]);
   const contextual = buildAiMessages({ type: "main" }, [cited], {
     [cited.id]: [{ artifact_snapshots: JSON.parse(refs[1][5]) }],
   });
-  assert.match(contextual[0].content, /文献线索核查卡/);
-  assert.match(contextual[0].content, /可引用/);
-  assert.match(messages.find((message) => message.id === refs[2][0]).content, /六页八分钟课堂分享稿/);
-  assert.ok(messages.every((message) => !/本轮不保存成果|这个任务仍在探索阶段|按引用任务中实际调用|主线先不改|预置演示/.test(message.content)),
-    "Visible dialogue should not contain product-internal instructions");
+  assert.match(contextual[0].content, /先判断/);
+  assert.match(contextual[0].content, /从零构建/);
+  assert.doesNotMatch(contextual[0].content, /AI 会不会替代大学教师？大家可能更想听这个/,
+    "The abandoned branch's raw chat must not enter a different task");
+
   if (process.env.DEMO_PREVIEW_PATH) {
-    const lines = ["# TaskMind 示例对话预览", "", "以下内容直接来自本次预置数据；它是交互演示，不是真实文献、调查或用户效果。", ""];
+    const lines = [
+      "# TaskMind · 交互示例与对话预览",
+      "",
+      "这是一份预置交互的审阅稿：对话为编写的示例，整理与确认状态由预置记录模拟；不是实时 AI 回答、真实教学实验或用户研究。",
+      "",
+      "## 如何看链路",
+      "",
+      "任务 A 的主线先形成一份判断成果；支线 A 连续探索并确认三步方法；支线 B 探索后没有确认成果；主线明确引用支线 A 的方法。任务 B 最后 @任务 A，只取两份确认成果。",
+      "以下为便于阅读按主线、支线分组；实际交互顺序为任务 A 主线前四条 → 支线 A → 支线 B → 返回任务 A 主线引用 → 任务 B。",
+      "",
+    ];
     for (const [index, task] of tasks.entries()) {
-      lines.push(`## ${index + 1}. ${task.title}`, "");
-      for (const conversation of conversations.filter((item) => item.task_id === task.id)) {
-        lines.push(`### ${conversation.title}`, "");
-        for (const message of messages.filter((item) => item.conversation_id === conversation.id)) {
-          lines.push(`**${message.role === "user" ? "用户" : "助手"}**：${message.content}`, "");
-          const reference = refs.find((entry) => entry[0] === message.id);
-          if (reference) {
-            lines.push(`> 已保存的${reference[1] === "task" ? "任务" : "成果"}引用：「${reference[3]}」；实际调用：${JSON.parse(reference[5]).map((snap) => snap.title).join("、")}`, "");
+      lines.push("## " + (index + 1) + ". " + task.title, "");
+      for (const conv of conversations.filter((c) => c.task_id === task.id)) {
+        lines.push("### " + conv.title, "");
+        if (conv.snapshot) {
+          lines.push("> 来源：从主线第 " + JSON.parse(conv.snapshot).messages.length + " 条消息后的节点展开。后续主线对话不会自动流入这条支线。", "");
+        }
+        for (const msg of messages.filter((m) => m.conversation_id === conv.id)) {
+          lines.push("**" + (msg.role === "user" ? "用户" : "助手") + "**：" + msg.content, "");
+          const ref = refs.find((r) => r[0] === msg.id);
+          if (ref) {
+            lines.push("> 明确 @"+(ref[1] === "task" ? "任务" : "成果")+"：「"+ref[3]+"」；本轮引用的已确认成果："+JSON.parse(ref[5]).map((a)=>a.title).join("、")+"。", "");
+          }
+          for (const job of jobs.filter((j) => j[1] === conv.id && j[2].at(-1) === msg.id)) {
+            const candidate = JSON.parse(job[4])[0];
+            lines.push("**整理记录（预置交互状态，不是聊天消息）**：用户在本阶段主动发起整理 → AI 提炼候选「"+candidate.title+"」（"+candidate.type+"） → 用户查看来源、确认保存。来源消息 "+job[2].length+" 条。", "");
           }
         }
+        if (conv.id === branches[1].id) lines.push("**状态**：这条支线没有确认成果；打开 @ 引用列表时会显示「暂无可调用成果」。", "");
       }
-      const saved = artifacts.filter((artifact) => artifact.task_id === task.id);
-      lines.push("### 已保存成果", "");
-      if (!saved.length) lines.push("无。本任务保留对话与引用，但没有保存自己的成果。", "");
-      for (const artifact of saved) {
-        lines.push(`#### ${artifact.title}（${artifact.type}）`, "", artifact.content, "");
-      }
+      lines.push("### 可调用的已确认成果", "");
+      const saved = artifacts.filter((a) => a.task_id === task.id);
+      if (!saved.length) lines.push("当前任务没有自己的确认成果，仍可以明确引用历史任务的成果。", "");
+      for (const a of saved) lines.push("#### "+a.title+"（"+a.type+"）", "", a.content, "");
     }
     fs.writeFileSync(process.env.DEMO_PREVIEW_PATH, lines.join("\n") + "\n");
   }
-  await seedGuestExamples(b);
-  assert.equal(tasks.length, 6);
-  assert.ok(tasks.slice(3).every((task) => task.guest_id === b));
-  assert.ok(refs.slice(3).every((ref) => !refs.slice(0, 3).some((old) => old[2] === ref[2])));
-  const old = crypto.randomUUID();
-  seedVersions.set(old, 1);
-  const oldIds = Array.from({ length: 3 }, () => crypto.randomUUID());
+
+  await seedGuestExamples(secondGuest);
+  assert.equal(tasks.length, 4);
+  assert.ok(tasks.slice(2).every((t) => t.guest_id === secondGuest));
+  assert.ok(refs.slice(2).every((r) => !refs.slice(0, 2).some((old) => old[2] === r[2])),
+    "Different visitors' references must be isolated");
+
+  const older = crypto.randomUUID();
+  seedVersions.set(older, 3);
+  const ids = Array.from({ length: 3 }, () => crypto.randomUUID());
   legacyRows = [
-    { id: oldIds[0], title: "示例｜大学学习方式研究", main_count: 6,
-      branch_titles: "支线｜资料核查方法", branch_count: 2,
-      artifact_titles: "研究问题与证据清单", ref_count: 1, job_count: 0 },
-    { id: oldIds[1], title: "示例｜学习工具课程汇报", main_count: 6,
-      branch_titles: "支线｜证据与表述边界", branch_count: 2,
-      artifact_titles: "八分钟汇报提纲", ref_count: 1, job_count: 0 },
-    { id: oldIds[2], title: "示例｜新行业分析选题", main_count: 6,
-      branch_titles: "支线｜信息来源筛选", branch_count: 2,
-      artifact_titles: "", ref_count: 1, job_count: 0 },
-  ];
-  await seedGuestExamples(old);
-  assert.deepEqual(archived, oldIds, "Only untouched old examples are archived");
-  assert.equal(seedVersions.get(old), 3);
-  const changed = crypto.randomUUID();
-  seedVersions.set(changed, 1);
-  legacyRows[0].main_count++;
-  await seedGuestExamples(changed);
-  assert.equal(archived.length, 3, "Changed examples remain visible");
-  const v2 = crypto.randomUUID();
-  seedVersions.set(v2, 2);
-  const v2Ids = Array.from({ length: 3 }, () => crypto.randomUUID());
-  legacyRows = [
-    { id: v2Ids[0], title: "示例｜从宽泛选题到研究计划", main_count: 6,
-      branch_titles: "支线｜找不到原文怎么办", branch_count: 2,
+    { id: ids[0], title: "示例｜从宽泛选题到研究计划", main_count: 6,
+      branch_titles: "支线｜找不到原文怎么办", branch_count: 6,
       artifact_titles: "无法核实资料的展示边界|文献线索核查卡", ref_count: 1, job_count: 2 },
-    { id: v2Ids[1], title: "示例｜把研究计划做成课堂分享", main_count: 6,
-      branch_titles: "支线｜没有数据怎么开场", branch_count: 2,
+    { id: ids[1], title: "示例｜把研究计划做成课堂分享", main_count: 6,
+      branch_titles: "支线｜没有数据怎么开场", branch_count: 6,
       artifact_titles: "六页八分钟课堂分享稿", ref_count: 1, job_count: 1 },
-    { id: v2Ids[2], title: "示例｜教育科技行业分析立项", main_count: 6,
-      branch_titles: "支线｜官网说法能当证据吗", branch_count: 2,
+    { id: ids[2], title: "示例｜教育科技行业分析立项", main_count: 7,
+      branch_titles: "支线｜官网说法能当证据吗", branch_count: 6,
       artifact_titles: "", ref_count: 1, job_count: 0 },
   ];
-  await seedGuestExamples(v2);
-  assert.deepEqual(archived.slice(3), v2Ids, "Untouched second-generation examples are hidden on upgrade");
-  assert.equal(seedVersions.get(v2), 3);
-  const customizedV2 = crypto.randomUUID();
-  seedVersions.set(customizedV2, 2);
-  legacyRows[0].branch_count++;
-  await seedGuestExamples(customizedV2);
-  assert.equal(archived.length, 6, "A modified second-generation task remains visible");
+  await seedGuestExamples(older);
+  assert.deepEqual(archived, ids.slice(0, 2),
+    "Only unchanged earlier tasks are hidden; user-edited examples survive");
+  assert.equal(seedVersions.get(older), 4);
+  assert.equal(tasks.length, 6, "An upgrade inserts two new curated examples");
+  const copy = crypto.randomUUID();
+  seedVersions.set(copy, 3);
+  const duplicateId = crypto.randomUUID();
+  legacyRows = [{ ...legacyRows[0], id: duplicateId }];
+  await seedGuestExamples(copy);
+  assert.deepEqual(archived.slice(2), [duplicateId], "Old duplicates are archived individually");
   console.log("Guest examples PASS");
 })().catch((error) => { console.error(error); process.exitCode = 1; })
   .finally(() => { db.getPool = oldGetPool; });

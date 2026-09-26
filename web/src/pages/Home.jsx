@@ -4,9 +4,9 @@ import { api } from "../lib/api";
 import { Link } from "react-router-dom";
 
 const examples = [
-  "我想做一份关于大学生学习方式的课程汇报，先帮我确定问题和资料来源",
-  "我想研究生成式 AI 对大学学习方式的影响，帮我拆解研究路径",
-  "我要做一个新行业分析，先和我一起确定问题、信息来源与输出结构",
+  "我要做一场生成式 AI 与大学教育的课程汇报，先帮我收窄主题",
+  "我想设计一场 AI 素养工作坊，重点练习学生如何判断 AI 的回答",
+  "我在准备一份复杂报告，想先明确问题，过程中再单独追问值得探索的方向",
 ];
 
 // Home: "今天要推进什么？" + big composer.
@@ -44,7 +44,7 @@ export default function Home() {
     <div className="home">
       <div className="home-inner">
         <h1 className="home-title">今天要推进什么？</h1>
-        <p className="home-sub">课程汇报 · 论文 · 研究分析 —— 从一句话开始，持续推进</p>
+        <p className="home-sub">先推进任务，自然接住成果</p>
         <p className="demo-note">公开体验版 · 每个浏览器独立保存，数据 7 天后清理 · 每日 20 次对话、5 次成果整理</p>
         <div className="composer home-composer">
           <textarea

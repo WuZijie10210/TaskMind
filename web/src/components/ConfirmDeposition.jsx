@@ -21,6 +21,7 @@ export default function ConfirmDeposition({ jobId, onClose }) {
   const [openSources, setOpenSources] = useState(null); // index into drafts
   const [openContent, setOpenContent] = useState(null); // index into drafts
   const [busy, setBusy] = useState(false);
+  const [readOnly, setReadOnly] = useState(false);
   const [error, setError] = useState(null);
 
   const reload = async () => {
@@ -28,12 +29,13 @@ export default function ConfirmDeposition({ jobId, onClose }) {
       const d = await api.getDeposition(jobId);
       setConversation(d.conversation);
       setSourceMessages(d.sourceMessages || []);
-      if (!d.job || d.job.status !== "ready") {
-        // confirmed/discarded elsewhere (or empty) — nothing to confirm
+      if (!d.job || !["ready", "confirmed"].includes(d.job.status)) {
+        // No candidate to review.
         onClose();
         window.dispatchEvent(new CustomEvent("depositions-changed"));
         return;
       }
+      setReadOnly(d.job.status === "confirmed");
       setDrafts((d.candidates || []).map((c) => ({ ...c })));
     } catch (e) {
       setError(e.message);
@@ -97,9 +99,9 @@ export default function ConfirmDeposition({ jobId, onClose }) {
       <div className="dep-modal">
         <div className="dep-modal-head">
           <div>
-            <div className="dep-modal-title">✦ 确认沉淀成果</div>
+            <div className="dep-modal-title">✦ {readOnly ? "已确认的整理记录" : "确认沉淀成果"}</div>
             <div className="dep-modal-sub">
-              来自「{conversation ? conversation.title : "…"}」 · 关闭不会丢失候选成果
+              来自「{conversation ? conversation.title : "…"}」 · {readOnly ? "查看提炼候选与来源；成果已确认" : "关闭不会丢失候选成果"}
             </div>
           </div>
           <button className="icon-btn" onClick={onClose} aria-label="关闭">
@@ -117,17 +119,18 @@ export default function ConfirmDeposition({ jobId, onClose }) {
               <div className="cand-card" key={i}>
                 <div className="cand-top">
                   <span className={"type-chip t-" + d.type}>{d.type}</span>
-                  <button
+                  {!readOnly && <button
                     className="cand-remove"
                     onClick={() => removeAt(i)}
                     title="移除此候选（不会保存为成果）"
                   >
                     移除此候选
-                  </button>
+                  </button>}
                 </div>
                 <input
                   className="cand-title"
                   value={d.title}
+                  readOnly={readOnly}
                   onChange={(e) => edit(i, { title: e.target.value })}
                   placeholder="成果标题"
                 />
@@ -150,6 +153,7 @@ export default function ConfirmDeposition({ jobId, onClose }) {
                   <textarea
                     className="cand-content"
                     value={d.content}
+                    readOnly={readOnly}
                     onChange={(e) => edit(i, { content: e.target.value })}
                     rows={Math.min(12, Math.max(4, Math.ceil(d.content.length / 40)))}
                   />
@@ -171,12 +175,12 @@ export default function ConfirmDeposition({ jobId, onClose }) {
         {error && <div className="dep-modal-error">{error}</div>}
 
         <div className="dep-modal-foot">
-          <button className="ghost-btn" onClick={discard} disabled={busy}>
-            放弃本次沉淀
-          </button>
-          <button className="primary-btn" onClick={save} disabled={busy || drafts === null || drafts.length === 0}>
-            {drafts === null ? "…" : `保存 ${drafts.length} 项成果`}
-          </button>
+          {readOnly ? <button className="primary-btn" onClick={onClose}>关闭记录</button> : <>
+            <button className="ghost-btn" onClick={discard} disabled={busy}>放弃本次沉淀</button>
+            <button className="primary-btn" onClick={save} disabled={busy || drafts === null || drafts.length === 0}>
+              {drafts === null ? "…" : `保存 ${drafts.length} 项成果`}
+            </button>
+          </>}
         </div>
       </div>
     </div>
