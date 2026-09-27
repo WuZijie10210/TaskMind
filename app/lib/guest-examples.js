@@ -2,7 +2,7 @@
 // These are illustrative conversations, not AI output or real user research.
 const db = require("../services/db");
 const { artifactToSnapshot } = require("./reference");
-const SEED_VERSION = 7;
+const SEED_VERSION = 9;
 const timelines = new WeakMap();
 
 function seededAt(client) {
@@ -42,6 +42,16 @@ const previousCopies = [
   [
     ["示例｜生成式 AI 与大学教育汇报", 6, "支线｜AI 会替代大学教师吗|支线｜即时反馈会削弱学生判断吗", 12,
       "从零构建与对 AI 草稿反应的判断力差异|大学教育汇报的切入问题与范围|学生使用 AI 时的「先判断—再反馈—后验证」三步框架|即时反馈议题的汇报论证边界|不以「AI 是否替代教师」作为汇报主线", 1, 3],
+    ["示例｜AI 素养工作坊", 6, "支线｜小组互评怎么提问", 4, "", 1, 0],
+  ],
+  [
+    ["示例｜生成式 AI 与大学教育汇报", 6, "支线｜AI 会替代大学教师吗|支线｜即时反馈会削弱学生判断吗", 12,
+      "从零构建与对 AI 草稿反应的判断力差异|大学教育汇报的切入问题与范围|学生使用 AI 时的「先判断—再反馈—后验证」三步框架|同一道讨论题的两种 AI 反馈时机|不以「AI 是否替代教师」作为汇报主线|八分钟汇报的对比与练习结构", 1, 4],
+    ["示例｜AI 素养工作坊", 6, "支线｜小组互评怎么提问", 4, "", 1, 0],
+  ],
+  [
+    ["示例｜生成式 AI 与大学教育汇报", 12, "支线｜AI 会替代大学教师吗|支线｜即时反馈会削弱学生判断吗", 12,
+      "从零构建与对 AI 草稿反应的判断力差异|大学教育汇报的切入问题与范围|学生使用 AI 时的「先判断—再反馈—后验证」三步框架|同一道讨论题的两种 AI 反馈时机|不以「AI 是否替代教师」作为汇报主线|八分钟汇报的对比与练习结构", 2, 4],
     ["示例｜AI 素养工作坊", 6, "支线｜小组互评怎么提问", 4, "", 1, 0],
   ],
 ];
@@ -254,6 +264,46 @@ async function seedGuestExamples(guestId) {
       "适用于用两个过程的对比引出现场练习的短汇报：提出问题、比较差异、让听众尝试、收束判断。",
       "使用时替换方括号中的具体内容：\n0—1 分钟｜提出 [核心问题]，用同一道题展示两种处理方式。\n1—3 分钟｜对比 [方式 A] 和 [方式 B]，说明关键差异出现在哪一步。\n3—6 分钟｜让听众先写 [个人判断]，再看 [反例或反馈]，最后用 [指定材料] 核对并说明改或不改的理由。\n6—8 分钟｜请听众说出自己的判断在哪一步变化，用 [可观察的练习产出] 回答开头的问题。\n这是一份组织汇报的结构模板；具体事实与案例应另行核对。");
     await addConfirmedStage(client, report, talkTemplate);
+
+    const review = await addTask(client, guestId, "示例｜团队方案评审会", 3, [
+      ["user", "团队要在 15 分钟例会上比较两版首页方案。以前一上来就展示设计稿，大家容易跟着最漂亮的一版说好。我更想先听到每个人自己的判断和理由。"],
+      ["assistant", "可以先只说要解决的用户问题，不展示方案。请每个人写下一项最在意的判断标准和一条担心；然后再看 A、B 两版，逐条比较哪些标准被满足、哪些还缺证据。这样能分清原本的判断与看完方案后的反应。"],
+      ["user", "会议很短，能不能排一个以后也好复用的 15 分钟安排？如果出现分歧，我不想为了结束会议就强行说大家已经达成一致，先留着待验证的问题。"],
+      ["assistant", "可以按三个阶段走：0—3 分钟，各自写判断标准和担心；3—10 分钟，展示两版方案，对照标准说支持与质疑的理由；10—15 分钟，记录目前倾向、仍不同意的点、需要谁用什么材料验证以及何时再决定。如果依据不足，就把它记成待验证意见，不写成全员已同意的结论。"],
+    ]);
+    const reviewMethod = await addArtifact(client, review, "先写判断再展示方案的评审顺序", "方法",
+      "适用于容易被现成方案带走讨论的场合：先写独立标准与担心，再展示方案，对照理由与证据讨论。",
+      "先说明要解决的问题，让参与者在看方案前各自写出一项判断标准和一条担心；再展示备选方案，逐项对照哪些标准被满足、哪些说法还缺证据。最后记录判断有没有变化以及为什么变化。这个顺序帮助分清个人原有判断与对现成方案的反应，不以此断言方案质量更高。");
+    const reviewAgenda = await addArtifact(client, review, "十五分钟方案评审议程", "模板",
+      "短会可沿用三段节奏：独立写标准、比较备选方案、记录倾向和下一步核查。",
+      "0—3 分钟｜只陈述待解决的问题；每人写一项判断标准、一条担心。\n3—10 分钟｜展示 A、B 两版方案；对照各自标准，说出支持或质疑的理由。\n10—15 分钟｜记下目前倾向、未解决的分歧、验证所需材料与负责人；证据不足时注明下次再定。按参会人数可调整每段时长。");
+    const reviewDecision = await addArtifact(client, review, "依据不足时保留待验证的分歧", "判断",
+      "会议结束不强求所有人同意：把尚无依据的争议、待核查材料和下一次决策条件一并留下。",
+      "这次评审选择不把时间用尽时的沉默写成「已达成一致」。如果两版方案还有未经核实的关键分歧，记录各自理由、缺少什么材料、由谁核查、何时再作选择。保存的是决策边界与后续行动，不是已经证实的方案效果。");
+    await addConfirmedStage(client, review, [reviewMethod, reviewAgenda, reviewDecision]);
+    const reviewRef = await addTurn(client, review, "user",
+      "如果下次只剩 10 分钟，请用【@" + reviewMethod.title + "】把流程缩短，仍保留每个人先写判断的环节。");
+    await addReference(client, reviewRef.id, "artifact", review, reviewMethod);
+    await addTurn(client, review, "assistant",
+      "可以用 2 分钟写个人标准与担心、5 分钟看方案并逐条对照、3 分钟记录分歧和待核查的问题。压缩展示时间，不删先写个人判断的环节；最后的决定只写目前有依据的部分。");
+
+    // Leave this later stage for visitors to review themselves. The four
+    // previous confirmed jobs stop at the six-message main conversation;
+    // these new turns offer two distinct potential results without pre-saving
+    // either the participant's record card or the facilitator's questions.
+    await addTurn(client, report, "user",
+      "我按这个结构排了一遍，3—6 分钟的练习还是有点虚。现场只有几分钟，能让同学留下一张什么样的记录，才看得出他是怎么从自己的观点走到最后的修改？");
+    await addTurn(client, report, "assistant",
+      "可以用一张四格小卡，字段只写：①我原先的观点和一条理由；②AI 给我的哪条反例值得追问；③我查了哪份指定材料、查到什么；④我最后保留或修改了什么、为什么。先让大家写完第一格再展示 AI 的反例，后面三格边练边填。这样保留的是判断的变化，不只是最后一段写好的答案。");
+    await addTurn(client, report, "user",
+      "卡片有了。但让两位同学分享时，如果他们只说「AI 说得挺对」，我应该怎么追问？我不想把分享变成让大家猜标准答案。");
+    await addTurn(client, report, "assistant",
+      "可以按顺序追问三句：「在看 AI 的说法前，你自己的理由是什么？」「它哪一句让你犹豫，你是同意还是质疑，为什么？」「你回到哪处材料核对，最后保留或修改了哪一点？」前两句把个人判断和反馈分开，第三句要求说出依据。有人没改变观点也可以，只要能讲清核对的理由。");
+    const followupRef = await addTurn(client, report, "user",
+      "我记得【@" + review.title + "】里讨论过怎么避免大家一上来就跟着现成方案走，但想不起具体做法。请找适合这次三分钟课堂练习的部分，帮我安排投屏顺序；再把四格小卡和三句追问整理成我能直接用的文字。卡片给同学填，追问给我主持时用。");
+    await addReference(client, followupRef.id, "task", review, [reviewMethod]);
+    await addTurn(client, report, "assistant",
+      "可以借用先独立写判断、再展示备选内容的顺序，但把团队会议的讨论时间压缩到这三分钟：先投屏题目和小卡第一格，留 40 秒让同学独立写；再展示 AI 的一条反例，让他们填第二格；给出课堂指定材料，让他们核对并填第三、四格；最后请两位同学用卡片分享。\n\n**投屏给同学填写｜我的判断过程**\n1. 我起初认为：____；理由是：____。\n2. AI 的反例是：____；我同意或质疑的是：____。\n3. 我核对的课程材料及具体位置：____；材料支持或不支持：____。\n4. 我的最终观点：保留 / 修改为 ____；原因是：____。\n\n**主持人照着问｜三句追问**\n- 看 AI 之前，你是怎么想的，理由是什么？\n- AI 的哪句话让你停下来想，为什么？\n- 你到哪里核对过，最后为什么改或不改？\n\n分享时不评哪张卡更像标准答案，只请同学指出自己的判断和依据在哪一步发生变化。");
 
     const workshop = await addTask(client, guestId, "示例｜AI 素养工作坊", 2, [
       ["user", "我要给大一学生设计一场 40 分钟的 AI 素养工作坊。不想教一遍工具怎么用，而是让他们练习审查 AI 给的建议。先帮我定活动目标，暂时不用排流程。"],
