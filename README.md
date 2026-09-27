@@ -6,7 +6,7 @@
 
 TaskMind 探索的是：怎样让 AI 对话里产生的有用内容，在之后还能被找到、确认和使用？
 
-[在线体验](https://taskmind-production-050c.up.railway.app/) · [产品设计介绍](https://taskmind-production-050c.up.railway.app/about) · [调研分析报告](https://docs.qq.com/slide/DWnBuUUdwUmhDS01Y)
+[在线体验](https://taskmind-production-050c.up.railway.app/) · [调研分析报告](https://docs.qq.com/slide/DWnBuUUdwUmhDS01Y)
 
 ## 为什么这些内容没有留下来、用起来？
 
